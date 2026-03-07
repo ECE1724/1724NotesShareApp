@@ -26,11 +26,8 @@ export const db = {
   // Get all users
   async getAllUsers() {
 
-    // TODO: build a Prisma.AuthorWhereInput object
     const where: Prisma.UserWhereInput = {};
     
-    // TODO: transaction with findMany + count
-    // const [authors, total] = await prisma.$transaction([]);
     const [users, total] = await prisma.$transaction([
       prisma.user.findMany({
         where,
@@ -52,12 +49,12 @@ export const db = {
 
   // Create Users
 
-  // Get All files
-  async getAllFiles() {
+  // Get All files under a single course
+  async getCourseFiles(id: number) {
+    const where: Prisma.FileItemWhereInput = {
+      courseId: id,
+    };
 
-    // TODO: build a Prisma.AuthorWhereInput object
-    const where: Prisma.FileItemWhereInput = {};
-    
     const [files, total] = await prisma.$transaction([
       prisma.fileItem.findMany({
         where,
@@ -68,7 +65,7 @@ export const db = {
       }),
     ]);
 
-    return { files, total};
+    return { files, total };
   },
 
   // Get file by id
@@ -81,4 +78,74 @@ export const db = {
     })
     return file;
   },
+
+  // -------------------------
+  // Courses
+  // -------------------------
+
+  // Create Course
+
+  // Get All courses under a single department
+  async getDepartmentCourses(id: number) {
+    const where: Prisma.CourseWhereInput = {
+      departmentId: id,
+    };
+
+    const [courses, total] = await prisma.$transaction([
+      prisma.course.findMany({
+        where,
+        orderBy: { id: "asc" },
+      }),
+      prisma.course.count({
+        where,
+      }),
+    ]);
+
+    return { courses, total };
+  },
+
+  // Get course by id
+  async getCourseById(id: number) {
+
+    const file =  await prisma.course.findUnique({
+      where: {
+        id: id,
+      },
+    })
+    return file;
+  },
+
+  // -------------------------
+  // Department
+  // -------------------------
+
+  // Get all department
+  async getAllDepartments() {
+
+    const where: Prisma.DepartmentWhereInput = {};
+
+    const [departments, total] = await prisma.$transaction([
+      prisma.department.findMany({
+        where,
+        orderBy: { id: "asc" },
+      }),
+      prisma.department.count({
+        where,
+      }),
+    ]);
+
+    return { departments, total};
+  },
+
+  // Get department by id
+  async getDepartmentById(id: number) {
+
+    const file =  await prisma.department.findUnique({
+      where: {
+        id: id,
+      },
+    })
+    return file;
+  },
+
 };

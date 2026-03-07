@@ -22,26 +22,6 @@ function buildFileUrl(key: string): string {
 }
 
 // -----------------------
-// GET /api/files
-// -----------------------
-/**
-get all files
- */
-router.get(
-  "/",
-  async (req, res, next) => {
-    try {
-
-      const result = await db.getAllFiles()
-
-      return res.json(result)
-    } catch (e) {
-      next(e);
-    }
-  },
-);
-
-// -----------------------
 // GET /api/files/:id
 // -----------------------
 /**
@@ -67,4 +47,23 @@ router.get(
   },
 );
 
+// -----------------------
+// GET /api/files/course/:id
+// -----------------------
+/**
+ * Get all files under a single course
+ */
+router.get(
+  "/course/:id",
+  async (_req, res, next) => {
+    try {
+      const result = await db.getCourseFiles(Number(_req.params.id));
+
+      return res.json(result);
+      
+    } catch (e) {
+      next(e);
+    }
+  },
+);
 export default router;
