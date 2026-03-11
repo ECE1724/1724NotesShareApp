@@ -1,6 +1,8 @@
 import { error } from "node:console";
 import { Prisma } from "../generated/prisma/client";
 import { prisma } from "./lib/prisma";
+import type {Course, Department, FileItem} from "./types";
+import department from "./routes/department";
 
 // -------------------------
 // Helper: Prisma "record not found" detection (provided)
@@ -48,6 +50,30 @@ export const db = {
   // -------------------------
 
   // Create Users
+
+  //Create a new file
+  async create_file(file: FileItem){
+    return prisma.fileItem.create(
+        {
+          data:{
+            courseId: file.courseId,
+            ownerId: file.ownerId,
+            title: file.title,
+            fileUrl: file.fileUrl
+          }
+        }
+    )
+  },
+
+  async delete_file(id: number){
+    return prisma.fileItem.delete(
+        {
+          where: {
+            id: id
+          }
+        }
+    )
+  },
 
   // Get All files under a single course
   async getCourseFiles(id: number) {
@@ -115,7 +141,21 @@ export const db = {
     return file;
   },
 
-  // -------------------------
+  async createCourse(courseData: Course) {
+
+    return prisma.course.create({
+      data: {
+        departmentId: courseData.departmentId,
+        courseCode: courseData.courseCode,
+        title: courseData.title
+      }
+    })
+  },
+
+
+
+
+// -------------------------
   // Department
   // -------------------------
 
@@ -147,5 +187,15 @@ export const db = {
     })
     return file;
   },
+
+  async createDepartment(depatmentData: Department) {
+
+    return prisma.department.create({
+      data: {
+        code: depatmentData.code,
+        name: depatmentData.name
+      }
+    })
+  }
 
 };

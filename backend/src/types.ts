@@ -28,13 +28,13 @@ export interface Course {
 }
 
 export interface FileItem {
-  id: number;
+  // id: number;
   courseId: number;
   ownerId: number;
   title: string;
   fileUrl: string;
-  createdAt: Date;
-  updatedAt: Date;
+  // createdAt: Date;
+  // updatedAt: Date;
 }
 
 export interface FileAccess {

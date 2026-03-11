@@ -55,5 +55,18 @@ router.get(
   },
 );
 
+router.post(
+    "/",
+    async (req, res, next) => {
+        try {
+            const department = await db.createDepartment(req.body)
+            res.status(201).json(department)
+        }
+        catch (e){
+            next(e)
+        }
+    }
+)
+
 
 export default router;

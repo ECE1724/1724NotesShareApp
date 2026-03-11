@@ -2,8 +2,17 @@ import { Router } from "express";
 import { db } from "../database";
 import * as middleware from "../middleware";
 import type { FileItem } from "../types";
+import multer from "multer";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { s3 } from "../services/spacesClient"
+
+
+// interface MulterRequest extends Request {
+//     file: Express.Multer.File; // for single file upload
+// }
 
 const router = Router();
+const upload = multer()
 
 // -----------------------
 // Helper (provided)
@@ -66,4 +75,56 @@ router.get(
     }
   },
 );
+
+router.post("/", upload.single("file"), async (req, res) => {
+    try {
+        const file = req.file;
+        const courseId = Number(req.body.courseId)
+        console.log('course id: ', Number(courseId))
+        const ownerId = Number(req.body.ownerId)
+        console.log('owner id: ', Number(ownerId))
+        console.log(req.body)
+        console.log(req.file)
+        if (!file) return res.status(400).json({error: "No file uploaded"});
+
+        const key = `${Date.now()}-${file.originalname}`;
+
+        const command = new PutObjectCommand({
+            Bucket: "ece1724-final-project",
+            Key: key,
+            Body: file.buffer,
+            ContentType: file.mimetype,
+            ACL: "public-read"
+        });
+
+        await s3.send(command); // <-- Using the client
+        console.log("Reached")
+
+        const fileUrl = `https://ece1724-final-project.tor1.digitaloceanspaces.com/${key}`;
+        console.log('file url: ', fileUrl)
+        const file_info: FileItem = {
+            courseId: courseId,
+            ownerId: ownerId,
+            title: file.originalname,
+            fileUrl: fileUrl,
+        }
+        const created_file = await db.create_file(file_info)
+        res.status(200).json(created_file)
+
+    }
+    catch (err){
+        res.status(400).json({error: "Error uploading file"})
+    }
+});
+
+router.delete("/:id", async (_req, res, next) => {
+    try{
+        const deleted = await db.delete_file(Number(_req.params.id))
+        res.status(204).json({})
+    }
+    catch (err){
+        res.status(400).json({error: "Error deleting files"})
+    }
+})
+
 export default router;

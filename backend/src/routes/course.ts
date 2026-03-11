@@ -55,5 +55,18 @@ router.get(
   },
 );
 
+router.post(
+    "/",
+    async (req, res, next) => {
+        try {
+            const course = await db.createCourse(req.body)
+            res.status(201).json(course)
+        }
+        catch (e){
+            next(e)
+        }
+    }
+)
+
 
 export default router;
