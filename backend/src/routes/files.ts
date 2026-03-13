@@ -4,7 +4,7 @@ import * as middleware from "../middleware";
 import type { FileItem } from "../types";
 import multer from "multer";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { s3 } from "../services/spacesClient"
+import { s3 } from "../services/spaceClient"
 
 
 // interface MulterRequest extends Request {
@@ -76,6 +76,12 @@ router.get(
   },
 );
 
+// -----------------------
+// POST /api/files/
+// -----------------------
+/**
+ *  Upload a single file
+ */
 router.post("/", upload.single("file"), async (req, res) => {
     try {
         const file = req.file;
