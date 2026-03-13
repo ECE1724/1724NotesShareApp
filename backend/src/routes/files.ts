@@ -27,7 +27,7 @@ function isErrorWithMessage(e: unknown): e is { message: string } {
 }
 
 function buildFileUrl(key: string): string {
-  return `${process.env.DIGITALOCEAN_BASE}${key}`;
+  return `${process.env.FILE_BUCKET_BASE}${key}`;
 }
 
 // -----------------------
@@ -106,7 +106,7 @@ router.post("/", upload.single("file"), async (req, res) => {
         await s3.send(command); // <-- Using the client
         console.log("Reached")
 
-        const fileUrl = `https://ece1724-final-project.tor1.digitaloceanspaces.com/${key}`;
+        const fileUrl = `${key}`;
         console.log('file url: ', fileUrl)
         const file_info: FileItem = {
             courseId: courseId,
