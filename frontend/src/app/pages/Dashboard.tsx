@@ -105,7 +105,7 @@ export function Dashboard() {
             {filteredCourses.map((course) => (
               <button
                 key={course.id}
-                onClick={() => navigate(`/document/${course.code}/1`)}
+                onClick={() => navigate(`/course/${course.code}`)}
                 className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-all hover:border-[#0066CC] text-left group"
                 style={{ borderRadius: '8px' }}
               >
