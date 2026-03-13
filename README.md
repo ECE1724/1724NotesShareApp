@@ -25,3 +25,9 @@ secretAccessKey: Your secretAccessKey
 In .env file, change DIGITALOCEAN_BASE to this
 
 `DIGITALOCEAN_BASE = "https://tor1.digitaloceanspaces.com/"`
+
+To test the endpoint of creating a file, first create a file in your project directory and run
+
+curl -X POST http://localhost:3000/api/files -F file=@your_file_name -F courseId=course_id -F ownerId=owner_id
+
+replace your_file_name, course_id, and owner_id with the value you want
