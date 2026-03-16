@@ -1,8 +1,9 @@
 import { error } from "node:console";
 import { Prisma } from "../generated/prisma/client";
 import { prisma } from "./lib/prisma";
-import type {Course, Department, FileItem} from "./types";
+import type {Course, Department, FileItem, RegisterUserInput, LoginUserInput} from "./types";
 import department from "./routes/department";
+import bcrypt from 'bcrypt';
 
 // -------------------------
 // Helper: Prisma "record not found" detection (provided)
@@ -24,6 +25,36 @@ export const db = {
   // -------------------------
 
   // Create Users
+  async createUser(user: RegisterUserInput) {
+    const hashedPassword = await bcrypt.hash(user.password, 10);
+
+    return prisma.user.create({
+      data: {
+        email: user.email,
+        displayName: user.displayName,
+        passwordHash: hashedPassword
+      }
+    })
+  },
+
+  // User Login
+  async loginUser(input: LoginUserInput) {
+    const user = await prisma.user.findUnique({
+      where: { email: input.email }
+    });
+
+    if (!user) {
+      throw new Error("Invalid email or password");
+    }
+
+    const passwordMatched = await bcrypt.compare(String(input.password), user.passwordHash);
+
+    if (!passwordMatched) {
+      throw new Error("Invalid email or password");
+    }
+
+    return user;
+  },
 
   // Get all users
   async getAllUsers() {
@@ -155,7 +186,7 @@ export const db = {
 
 
 
-// -------------------------
+  // -------------------------
   // Department
   // -------------------------
 

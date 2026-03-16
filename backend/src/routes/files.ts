@@ -4,7 +4,7 @@ import * as middleware from "../middleware";
 import type { FileItem } from "../types";
 import multer from "multer";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { s3 } from "../services/spacesClient"
+import { s3 } from "../services/spaceClient"
 
 
 // interface MulterRequest extends Request {
@@ -27,7 +27,7 @@ function isErrorWithMessage(e: unknown): e is { message: string } {
 }
 
 function buildFileUrl(key: string): string {
-  return `${process.env.DIGITALOCEAN_BASE}${key}`;
+  return `${process.env.FILE_BUCKET_BASE}${key}`;
 }
 
 // -----------------------
@@ -76,6 +76,12 @@ router.get(
   },
 );
 
+// -----------------------
+// POST /api/files/
+// -----------------------
+/**
+ *  Upload a single file
+ */
 router.post("/", upload.single("file"), async (req, res) => {
     try {
         const file = req.file;
@@ -107,7 +113,7 @@ router.post("/", upload.single("file"), async (req, res) => {
           return res.status(500).json({ error: 'S3 upload failed', details: (s3err as any)?.message || String(s3err) });
         }
 
-        const fileUrl = `https://ece1724-final-project.tor1.digitaloceanspaces.com/${key}`;
+        const fileUrl = `${key}`;
         console.log('file url: ', fileUrl)
         const file_info: FileItem = {
             courseId: courseId,

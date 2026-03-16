@@ -42,3 +42,8 @@ Thumbs.db
 # =========================
 .vscode/
 .idea/
+
+# =========================
+# DigitalOcean
+# =========================
+src/services/spaceClient.ts
