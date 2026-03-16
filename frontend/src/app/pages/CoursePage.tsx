@@ -19,6 +19,7 @@ export function CoursePage(){
   const location = useLocation();
   const passedCourseId = (location.state as any)?.courseId;
   const [courseId, setCourseId] = useState<number | null>(passedCourseId ?? null);
+  const [resolvingCourse, setResolvingCourse] = useState(false);
 
   const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -52,25 +53,42 @@ export function CoursePage(){
     return () => { mounted = false };
   }, [courseId]);
 
-  // If the page was accessed by route param (courseCode) without navigation state,
-  // fetch the course by code to obtain its id so uploads and file listing work.
+  // If courseId wasn't provided via navigation state, try fetching by courseCode
   useEffect(() => {
     let mounted = true;
     async function resolveCourseId() {
       if (courseId || !courseCode) return;
       try {
+        // first try dedicated endpoint
         const res = await fetch(`${API_BASE}/courses/code/${encodeURIComponent(courseCode)}`);
-        if (!res.ok) {
-          console.warn('Course lookup failed', res.status);
-          return;
+        if (res.ok) {
+          const data = await res.json();
+          if (!mounted) return;
+          if (data && data.id) {
+            setCourseId(Number(data.id));
+            return;
+          }
         }
-        const data = await res.json();
-        if (!mounted) return;
-        if (data && (data.id || data.courseId)) {
-          setCourseId(Number(data.id || data.courseId));
+
+        // fallback: fetch departments and their courses (same approach as Dashboard)
+        const depRes = await fetch(`${API_BASE}/departments`);
+        const depsRaw = await depRes.json();
+        const depsList = Array.isArray(depsRaw) ? depsRaw : (depsRaw.departments || []);
+        for (const d of depsList) {
+          const cl = await fetch(`${API_BASE}/courses/department/${d.id}`).then(r => r.json()).catch(() => null);
+          const arr = Array.isArray(cl) ? cl : (cl?.courses || cl || []);
+          const found = arr.find((c:any) => (c.courseCode || c.code || String(c.id)) === courseCode);
+          if (found) {
+            if (!mounted) return;
+            setCourseId(Number(found.id));
+            return;
+          }
         }
-      } catch (err) {
-        console.error('Error resolving course by code', err);
+
+        if (mounted) setError('Course not found');
+      } catch (e:any) {
+        console.error('Error resolving course id by code', e);
+        if (mounted) setError(e.message || 'Error');
       }
     }
     resolveCourseId();
@@ -155,10 +173,16 @@ export function CoursePage(){
                 <h3 className="text-[#002855]">{f.title}</h3>
                 <p className="text-sm text-gray-500">Uploaded by {f.ownerId}</p>
                 <div className="mt-4 flex items-center justify-between">
-                  <a href={f.fileUrl} target="_blank" rel="noreferrer">
+                  <a 
+                    href={f.fileUrl && (f.fileUrl.startsWith('http://') || f.fileUrl.startsWith('https://')) 
+                      ? f.fileUrl 
+                      : `https://ece1724-final-project.tor1.digitaloceanspaces.com/${f.fileUrl}`}
+                    target="_blank" 
+                    rel="noreferrer"
+                  >
                     <Button>Open</Button>
                   </a>
-                  <Button onClick={() => navigate(`/document/${courseCode}/${f.id}`)}>Annotate</Button>
+                  <Button onClick={() => navigate(-1)}>Back to Course</Button>
                 </div>
               </div>
             ))}
