@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useLocation } from 'react-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { API_BASE } from '../config';
@@ -26,6 +26,7 @@ export function CoursePage(){
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!courseId) return;
@@ -50,6 +51,31 @@ export function CoursePage(){
     loadFiles();
     return () => { mounted = false };
   }, [courseId]);
+
+  // If the page was accessed by route param (courseCode) without navigation state,
+  // fetch the course by code to obtain its id so uploads and file listing work.
+  useEffect(() => {
+    let mounted = true;
+    async function resolveCourseId() {
+      if (courseId || !courseCode) return;
+      try {
+        const res = await fetch(`${API_BASE}/courses/code/${encodeURIComponent(courseCode)}`);
+        if (!res.ok) {
+          console.warn('Course lookup failed', res.status);
+          return;
+        }
+        const data = await res.json();
+        if (!mounted) return;
+        if (data && (data.id || data.courseId)) {
+          setCourseId(Number(data.id || data.courseId));
+        }
+      } catch (err) {
+        console.error('Error resolving course by code', err);
+      }
+    }
+    resolveCourseId();
+    return () => { mounted = false };
+  }, [courseCode, courseId]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files && e.target.files[0];
@@ -100,9 +126,21 @@ export function CoursePage(){
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">Upload new file</label>
           <div className="flex items-center gap-3">
-            <input type="file" onChange={handleFileChange} />
-            <Button onClick={handleUpload} disabled={!selectedFile || uploading} className="bg-[#0066CC] text-white">
-              {uploading ? 'Uploading...' : 'Upload'}
+            <input ref={fileInputRef} type="file" onChange={handleFileChange} className="hidden" />
+            <div className="text-sm text-gray-700">{selectedFile ? selectedFile.name : 'Choose File'}</div>
+            <Button
+              onClick={() => {
+                // If no file selected, open the file picker; otherwise upload
+                if (!selectedFile) {
+                  fileInputRef.current?.click();
+                } else {
+                  handleUpload();
+                }
+              }}
+              disabled={uploading}
+              className="bg-[#0066CC] text-white"
+            >
+              {uploading ? 'Uploading...' : (selectedFile ? 'Upload' : 'Choose file')}
             </Button>
           </div>
           {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
