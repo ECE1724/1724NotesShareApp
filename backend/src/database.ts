@@ -227,6 +227,29 @@ export const db = {
         name: depatmentData.name
       }
     })
+  },
+
+  // -------------------------
+  // Annotations
+  // -------------------------
+
+  async createAnnotation(payload: { fileId: number; authorId: number; parentId?: number | null; anchorJson: any; body: string }) {
+    return prisma.annotation.create({ data: {
+      fileId: payload.fileId,
+      authorId: payload.authorId,
+      parentId: payload.parentId ?? null,
+      anchorJson: payload.anchorJson,
+      body: payload.body
+    }});
+  },
+
+  async getAnnotationsByFileId(fileId: number) {
+    const where: Prisma.AnnotationWhereInput = { fileId };
+    const [annotations, total] = await prisma.$transaction([
+      prisma.annotation.findMany({ where, orderBy: { id: 'asc' } }),
+      prisma.annotation.count({ where })
+    ]);
+    return { annotations, total };
   }
 
 };

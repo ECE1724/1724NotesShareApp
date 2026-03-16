@@ -4,7 +4,7 @@ import * as middleware from "../middleware";
 import type { FileItem } from "../types";
 import multer from "multer";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { s3 } from "../services/spaceClient"
+import { s3 } from "../services/spacesClient";
 
 
 // interface MulterRequest extends Request {
@@ -86,14 +86,16 @@ router.post("/", upload.single("file"), async (req, res) => {
     try {
         const file = req.file;
         const courseId = Number(req.body.courseId)
-        console.log('course id: ', Number(courseId))
         const ownerId = Number(req.body.ownerId)
+        console.log('course id: ', Number(courseId))
         console.log('owner id: ', Number(ownerId))
-        console.log(req.body)
-        console.log(req.file)
+        console.log('req.body keys:', Object.keys(req.body))
+        console.log('file present?', !!req.file)
         if (!file) return res.status(400).json({error: "No file uploaded"});
 
         const key = `${Date.now()}-${file.originalname}`;
+
+        console.log('Preparing PutObjectCommand with key:', key, 'mimetype:', file.mimetype, 'size:', file.size)
 
         const command = new PutObjectCommand({
             Bucket: "ece1724-final-project",
@@ -103,8 +105,13 @@ router.post("/", upload.single("file"), async (req, res) => {
             ACL: "public-read"
         });
 
-        await s3.send(command); // <-- Using the client
-        console.log("Reached")
+        try {
+          await s3.send(command); // <-- Using the client
+          console.log('s3.send succeeded for key:', key)
+        } catch (s3err) {
+          console.error('s3.send error:', s3err);
+          return res.status(500).json({ error: 'S3 upload failed', details: (s3err as any)?.message || String(s3err) });
+        }
 
         const fileUrl = `${key}`;
         console.log('file url: ', fileUrl)
@@ -119,7 +126,9 @@ router.post("/", upload.single("file"), async (req, res) => {
 
     }
     catch (err){
-        res.status(400).json({error: "Error uploading file"})
+        console.error('upload catch error:', err)
+        const message = isErrorWithMessage(err) ? err.message : 'Error uploading file'
+        res.status(400).json({error: message})
     }
 });
 
