@@ -1,10 +1,8 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
-import http from "http";
 import { errorHandler, requestLogger } from "./middleware";
 import routes from "./routes";
-import { initSocket } from "./socket";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -13,23 +11,29 @@ const PORT = Number(process.env.PORT) || 3000;
 app.use(express.json());
 app.use(requestLogger);
 
+// Simple CORS for local development
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
+
 // Routes
 app.use("/api", routes);
 
 // Error handling
 app.use(errorHandler);
 
-const server = http.createServer(app);
-
 const isEntry =
   fileURLToPath(import.meta.url) ===
   path.resolve(process.argv[process.argv.length - 1]);
 
 if (isEntry) {
-  server.listen(PORT, () => {
-    initSocket(server);
+  app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
   });
 }
 
-export default server;
+export default app;
