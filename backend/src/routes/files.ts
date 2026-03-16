@@ -27,7 +27,10 @@ function isErrorWithMessage(e: unknown): e is { message: string } {
 }
 
 function buildFileUrl(key: string): string {
-  return `${process.env.FILE_BUCKET_BASE}${key}`;
+  const base = process.env.FILE_BUCKET_BASE || process.env.VITE_SPACES_BASE || '';
+  // ensure trailing slash if base provided and doesn't already end with one
+  const sep = base && !base.endsWith('/') ? '/' : '';
+  return base ? `${base}${sep}${key}` : key;
 }
 
 // -----------------------
@@ -68,7 +71,16 @@ router.get(
     try {
       const result = await db.getCourseFiles(Number(_req.params.id));
 
-      return res.json(result);
+      // Map stored file keys to full public URLs
+      const mapped = {
+        ...result,
+        files: result.files.map((f: any) => ({
+          ...f,
+          fileUrl: buildFileUrl(f.fileUrl),
+        })),
+      };
+
+      return res.json(mapped);
       
     } catch (e) {
       next(e);
@@ -122,7 +134,12 @@ router.post("/", upload.single("file"), async (req, res) => {
             fileUrl: fileUrl,
         }
         const created_file = await db.create_file(file_info)
-        res.status(200).json(created_file)
+        // Return created file with a full public URL
+        const created_with_url = {
+          ...created_file,
+          fileUrl: buildFileUrl((created_file as any).fileUrl || fileUrl),
+        };
+        res.status(200).json(created_with_url)
 
     }
     catch (err){
