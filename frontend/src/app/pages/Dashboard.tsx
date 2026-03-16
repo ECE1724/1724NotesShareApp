@@ -19,20 +19,52 @@ export function Dashboard() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // upload modal state
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadCourseId, setUploadCourseId] = useState<number | null>(null);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+
+  // create dept/course state
+  const [newDeptName, setNewDeptName] = useState('');
+  const [newDeptCode, setNewDeptCode] = useState('');
+  const [creatingDept, setCreatingDept] = useState(false);
+
+  const [newCourseCode, setNewCourseCode] = useState('');
+  const [newCourseName, setNewCourseName] = useState('');
+  const [newCourseDeptId, setNewCourseDeptId] = useState<number | null>(null);
+  const [creatingCourse, setCreatingCourse] = useState(false);
+
   useEffect(() => {
     let mounted = true;
     async function load() {
       try {
         const depRes = await fetch(`${API_BASE}/departments`);
-        const deps: Department[] = await depRes.json();
+        const depsRaw = await depRes.json();
+        const depsList: Department[] = Array.isArray(depsRaw) ? depsRaw : (depsRaw.departments || []);
         if (!mounted) return;
-        setDepartments(deps);
+        setDepartments(depsList);
 
         // fetch courses for all departments in parallel
-        const courseLists = await Promise.all(deps.map(d => fetch(`${API_BASE}/courses/department/${d.id}`).then(r => r.json())));
-        const flat: Course[] = courseLists.flat();
+        const courseLists = await Promise.all(depsList.map(d => fetch(`${API_BASE}/courses/department/${d.id}`).then(r => r.json())));
+        // backend may return { courses: [...] } or an array
+        const rawCourses: any[] = courseLists.flatMap((c:any) => Array.isArray(c) ? c : (c.courses || c));
         if (!mounted) return;
-        setCourses(flat);
+        // build department map
+        const deptById = new Map<number,string>();
+        for (const d of depsList) { deptById.set(Number(d.id), d.code); }
+
+        const normalized: Course[] = rawCourses.map((c:any) => ({
+          id: Number(c.id),
+          code: c.courseCode || c.code || String(c.id),
+          name: c.title || c.name || c.courseName || '',
+          department: c.department || deptById.get(Number(c.departmentId)) || c.department || '',
+          documentsCount: c.documentsCount || (c.filesCount || 0),
+          color: c.color || '#0066CC',
+        }));
+        setCourses(normalized);
       } catch (e) {
         console.error('Error loading departments/courses', e);
       } finally {
@@ -45,10 +77,57 @@ export function Dashboard() {
 
   const filteredCourses = courses.filter((course) => {
     const matchesDepartment = !selectedDepartment || course.department === selectedDepartment;
-    const matchesSearch = course.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         course.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const code = (course.code ?? '').toString();
+    const name = (course.name ?? '').toString();
+    const q = (searchQuery ?? '').toString().toLowerCase();
+    const matchesSearch = code.toLowerCase().includes(q) || name.toLowerCase().includes(q);
     return matchesDepartment && matchesSearch;
   });
+
+  // upload handlers
+  const openUploadForCourse = (courseId?: number) => {
+    setUploadCourseId(courseId ?? null);
+    setUploadError(null);
+    setUploadSuccess(null);
+    setUploadOpen(true);
+  };
+
+  const handleUploadFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files && e.target.files[0];
+    setUploadFile(f ?? null);
+  };
+
+  const submitUpload = async () => {
+    if (!uploadFile || !uploadCourseId) {
+      setUploadError('Please select a course and a file');
+      return;
+    }
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', uploadFile);
+      fd.append('courseId', String(uploadCourseId));
+      fd.append('ownerId', '1');
+
+      const res = await fetch(`${API_BASE}/files`, { method: 'POST', body: fd });
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        throw new Error(json?.error || 'Upload failed');
+      }
+      const created = await res.json();
+      setUploadSuccess('Upload successful');
+      // optionally reset form
+      setUploadFile(null);
+      setUploadCourseId(null);
+      // you might refresh UI or navigate to course page
+      console.log('uploaded file', created);
+    } catch (e:any) {
+      setUploadError(e.message || 'Upload error');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <div className="flex h-screen bg-white">
@@ -92,14 +171,92 @@ export function Dashboard() {
         </nav>
 
         <div className="p-4 border-t border-white/10">
-          <Button 
-            className="w-full bg-[#0066CC] hover:bg-[#0052A3] text-white rounded-lg"
-            style={{ borderRadius: '8px' }}
-          >
-            <Upload className="mr-2 h-4 w-4" />
-            Upload Material
-          </Button>
-        </div>
+          {/* Create Department */}
+          <div className="mb-4">
+            <h4 className="text-sm text-white/90 mb-2">Create department</h4>
+            <div className="flex gap-2">
+              <Input placeholder="Dept name" value={newDeptName} onChange={e => setNewDeptName(e.target.value)} className="flex-1" />
+              <Input placeholder="Code" value={newDeptCode} onChange={e => setNewDeptCode(e.target.value)} style={{width: 80}} />
+            </div>
+            <Button
+              type="button"
+              onClick={async () => {
+                if (!newDeptName.trim() || !newDeptCode.trim()) return;
+                setCreatingDept(true);
+                try {
+                  const res = await fetch(`${API_BASE}/departments`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: newDeptName.trim(), code: newDeptCode.trim() })
+                  });
+                  if (!res.ok) throw new Error('Failed to create department');
+                  const created = await res.json();
+                  setDepartments(prev => [...prev, created]);
+                  // reset
+                  setNewDeptName(''); setNewDeptCode('');
+                } catch (err) {
+                  console.error('Create department error', err);
+                } finally { setCreatingDept(false); }
+              }}
+              disabled={creatingDept}
+              className="w-full bg-[#0066CC] hover:bg-[#0052A3] text-white rounded-lg mt-2"
+              style={{ borderRadius: '8px' }}
+            >
+              {creatingDept ? 'Creating...' : 'Create Department'}
+            </Button>
+          </div>
+
+          {/* Create Course */}
+          <div className="mb-4">
+            <h4 className="text-sm text-white/90 mb-2">Create course</h4>
+            <div className="flex gap-2 mb-2">
+              <Input placeholder="Code" value={newCourseCode} onChange={e => setNewCourseCode(e.target.value)} />
+              <Input placeholder="Title" value={newCourseName} onChange={e => setNewCourseName(e.target.value)} />
+            </div>
+            <div className="mb-2">
+              <select value={newCourseDeptId ?? ''} onChange={e => setNewCourseDeptId(e.target.value ? Number(e.target.value) : null)} className="w-full text-sm rounded px-2 py-2">
+                <option value="">Select department</option>
+                {departments.map(d => (
+                  <option key={d.id} value={String(d.id)}>{d.name} ({d.code})</option>
+                ))}
+              </select>
+            </div>
+            <Button
+              type="button"
+              onClick={async () => {
+                if (!newCourseCode.trim() || !newCourseName.trim() || !newCourseDeptId) return;
+                setCreatingCourse(true);
+                try {
+                  const body = { courseCode: newCourseCode.trim(), title: newCourseName.trim(), departmentId: Number(newCourseDeptId) };
+                  const res = await fetch(`${API_BASE}/courses`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                  });
+                  if (!res.ok) throw new Error('Failed to create course');
+                  const created = await res.json();
+                  // normalize created course into our Course type as best we can
+                  const normalized: Course = {
+                    id: Number(created.id),
+                    code: created.courseCode || created.code || newCourseCode.trim(),
+                    name: created.title || created.name || newCourseName.trim(),
+                    department: departments.find(d => d.id === Number(newCourseDeptId))?.code || '',
+                    documentsCount: created.documentsCount || 0,
+                    color: created.color || '#0066CC'
+                  };
+                  setCourses(prev => [normalized, ...prev]);
+                  setNewCourseCode(''); setNewCourseName(''); setNewCourseDeptId(null);
+                } catch (err) {
+                  console.error('Create course error', err);
+                } finally { setCreatingCourse(false); }
+              }}
+              disabled={creatingCourse}
+              className="w-full bg-white text-[#0066CC] border border-white/20"
+            >
+              {creatingCourse ? 'Creating...' : 'Create'}
+            </Button>
+          </div>
+         </div>
       </aside>
 
       {/* Main Content */}
@@ -182,6 +339,40 @@ export function Dashboard() {
           )}
         </div>
       </main>
+
+      {/* Upload Modal */}
+      {uploadOpen && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
+          <div className="bg-white w-full max-w-md p-6 rounded-lg">
+            <h3 className="text-lg mb-3">Upload Material</h3>
+            <div className="mb-3">
+              <label className="block text-sm mb-1">Select Course</label>
+              <select
+                className="w-full border rounded p-2"
+                value={uploadCourseId ?? ''}
+                onChange={(e) => setUploadCourseId(e.target.value ? Number(e.target.value) : null)}
+              >
+                <option value="">-- select course --</option>
+                {courses.map(c => (
+                  <option key={c.id} value={c.id}>{`${c.code} — ${c.name} (${c.department})`}</option>
+                ))}
+              </select>
+            </div>
+            <div className="mb-3">
+              <label className="block text-sm mb-1">File</label>
+              <input type="file" onChange={handleUploadFileChange} />
+            </div>
+            {uploadError && <div className="text-sm text-red-600 mb-2">{uploadError}</div>}
+            {uploadSuccess && <div className="text-sm text-green-600 mb-2">{uploadSuccess}</div>}
+            <div className="flex justify-end gap-2">
+              <button className="px-4 py-2 border rounded" onClick={() => setUploadOpen(false)} disabled={uploading}>Cancel</button>
+              <button className="px-4 py-2 bg-[#0066CC] text-white rounded" onClick={submitUpload} disabled={uploading}>
+                {uploading ? 'Uploading...' : 'Upload'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
