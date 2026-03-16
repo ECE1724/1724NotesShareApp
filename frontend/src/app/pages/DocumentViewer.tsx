@@ -5,8 +5,7 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Textarea } from '../components/ui/textarea';
 import { ScrollArea } from '../components/ui/scroll-area';
-import { io } from 'socket.io-client';
-import { AnnotationList } from '../components/AnnotationList';
+import { comments } from '../data/mockData';
 import { API_BASE } from '../config';
 
 export function DocumentViewer() {
@@ -14,35 +13,38 @@ export function DocumentViewer() {
   const { courseCode, documentId } = useParams();
   const [newComment, setNewComment] = useState('');
   const [replyTo, setReplyTo] = useState<string | null>(null);
-  const [socket, setSocket] = useState<any | null>(null);
-  const [annotations, setAnnotations] = useState<any[]>([]);
+  const [courseId, setCourseId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
 
+  // Fetch courseId from courseCode when component mounts
   useEffect(() => {
-    // fetch initial annotations
-    async function load(){
-      const res = await fetch(`${API_BASE}/annotations?fileId=${documentId}`);
-      const data = await res.json();
-      setAnnotations(data.annotations || []);
+    if (!courseCode) {
+      setLoading(false);
+      return;
     }
-    load();
-
-    const s = io((import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'));
-    setSocket(s);
-    s.emit('join-file', documentId);
-    s.on('annotation:created', (a:any) => {
-      setAnnotations(prev => [...prev, a]);
-    });
-
-    return () => {
-      s.emit('leave-file', documentId);
-      s.disconnect();
+    let mounted = true;
+    async function fetchCourseId() {
+      try {
+        const res = await fetch(`${API_BASE}/courses/code/${courseCode}`);
+        if (!res.ok) throw new Error('Failed to fetch course');
+        const data = await res.json();
+        if (mounted) {
+          setCourseId(data?.id || null);
+        }
+      } catch (e) {
+        console.error('Error fetching course by code:', e);
+      } finally {
+        if (mounted) setLoading(false);
+      }
     }
-  }, [documentId]);
+    fetchCourseId();
+    return () => { mounted = false };
+  }, [courseCode]);
 
-  const handleSendComment = async () => {
+  const handleSendComment = () => {
     if (newComment.trim()) {
-      // send to backend
-      await fetch(`${API_BASE}/annotations`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ fileId: Number(documentId), authorId: 1, body: newComment, anchorJson: {} }) });
+      // In a real app, this would send to backend
+      console.log('Sending comment:', newComment);
       setNewComment('');
       setReplyTo(null);
     }
@@ -195,7 +197,82 @@ export function DocumentViewer() {
 
         <ScrollArea className="flex-1 p-6">
           <div className="space-y-6">
-            <AnnotationList fileId={Number(documentId)} />
+            {comments.map((comment) => (
+              <div key={comment.id} className="space-y-3">
+                <div className="bg-gray-50 rounded-lg p-4" style={{ borderRadius: '8px' }}>
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-[#0066CC] flex items-center justify-center text-white text-sm">
+                        {comment.author.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-sm text-[#002855]">{comment.author}</p>
+                        <Badge 
+                          variant={comment.role === 'Admin' ? 'default' : 'secondary'}
+                          className={`text-xs ${
+                            comment.role === 'Admin' 
+                              ? 'bg-[#0066CC] text-white' 
+                              : 'bg-gray-200 text-gray-700'
+                          }`}
+                          style={{ borderRadius: '8px' }}
+                        >
+                          {comment.role}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-700 mb-2">{comment.content}</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-gray-500">{comment.timestamp}</p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-[#0066CC] hover:bg-blue-50 h-auto py-1"
+                      onClick={() => setReplyTo(comment.id)}
+                    >
+                      Reply
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Replies */}
+                {comment.replies && comment.replies.length > 0 && (
+                  <div className="ml-8 space-y-3">
+                    {comment.replies.map((reply) => (
+                      <div 
+                        key={reply.id} 
+                        className="bg-white border border-gray-200 rounded-lg p-4"
+                        style={{ borderRadius: '8px' }}
+                      >
+                        <div className="flex items-start gap-2 mb-2">
+                          <div className="w-7 h-7 rounded-full bg-gray-300 flex items-center justify-center text-white text-xs">
+                            {reply.author.charAt(0)}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm text-[#002855]">{reply.author}</p>
+                              <Badge 
+                                variant={reply.role === 'Admin' ? 'default' : 'secondary'}
+                                className={`text-xs ${
+                                  reply.role === 'Admin' 
+                                    ? 'bg-[#0066CC] text-white' 
+                                    : 'bg-gray-200 text-gray-700'
+                                }`}
+                                style={{ borderRadius: '8px' }}
+                              >
+                                {reply.role}
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-700 mb-2">{reply.content}</p>
+                        <p className="text-xs text-gray-500">{reply.timestamp}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </ScrollArea>
 
