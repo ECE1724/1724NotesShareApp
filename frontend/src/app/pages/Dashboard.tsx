@@ -1,15 +1,47 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Upload, FileText, Search } from 'lucide-react';
 import { useNavigate } from 'react-router';
-import { departments, courses } from '../data/mockData';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
+
+type Department = { id: number; name: string; code: string };
+type Course = { id: number; code: string; name: string; department: string; documentsCount: number; color: string };
+
+const API_BASE = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000') + '/api';
 
 export function Dashboard() {
   const navigate = useNavigate();
   const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      try {
+        const depRes = await fetch(`${API_BASE}/departments`);
+        const deps: Department[] = await depRes.json();
+        if (!mounted) return;
+        setDepartments(deps);
+
+        // fetch courses for all departments in parallel
+        const courseLists = await Promise.all(deps.map(d => fetch(`${API_BASE}/courses/department/${d.id}`).then(r => r.json())));
+        const flat: Course[] = courseLists.flat();
+        if (!mounted) return;
+        setCourses(flat);
+      } catch (e) {
+        console.error('Error loading departments/courses', e);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    load();
+    return () => { mounted = false };
+  }, []);
 
   const filteredCourses = courses.filter((course) => {
     const matchesDepartment = !selectedDepartment || course.department === selectedDepartment;
@@ -101,44 +133,48 @@ export function Dashboard() {
 
         {/* Course Grid */}
         <div className="flex-1 overflow-y-auto p-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredCourses.map((course) => (
-              <button
-                key={course.id}
-                onClick={() => navigate(`/course/${course.code}`)}
-                className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-all hover:border-[#0066CC] text-left group"
-                style={{ borderRadius: '8px' }}
-              >
-                <div 
-                  className="w-12 h-12 rounded-lg mb-4 flex items-center justify-center"
-                  style={{ 
-                    backgroundColor: course.color,
-                    borderRadius: '8px'
-                  }}
+          {loading ? (
+            <div className="text-gray-500">Loading courses...</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filteredCourses.map((course) => (
+                <button
+                  key={course.id}
+                  onClick={() => navigate(`/course/${course.code}`, { state: { courseId: course.id } })}
+                  className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-all hover:border-[#0066CC] text-left group"
+                  style={{ borderRadius: '8px' }}
                 >
-                  <FileText className="h-6 w-6 text-white" />
-                </div>
-                <h3 className="text-[#002855] mb-1 group-hover:text-[#0066CC] transition-colors">
-                  {course.code}
-                </h3>
-                <p className="text-sm text-gray-600 mb-3">{course.name}</p>
-                <div className="flex items-center justify-between">
-                  <Badge 
-                    variant="secondary" 
-                    className="bg-blue-50 text-[#0066CC] hover:bg-blue-100"
-                    style={{ borderRadius: '8px' }}
+                  <div 
+                    className="w-12 h-12 rounded-lg mb-4 flex items-center justify-center"
+                    style={{ 
+                      backgroundColor: course.color,
+                      borderRadius: '8px'
+                    }}
                   >
-                    {course.department}
-                  </Badge>
-                  <span className="text-xs text-gray-500">
-                    {course.documentsCount} docs
-                  </span>
-                </div>
-              </button>
-            ))}
-          </div>
+                    <FileText className="h-6 w-6 text-white" />
+                  </div>
+                  <h3 className="text-[#002855] mb-1 group-hover:text-[#0066CC] transition-colors">
+                    {course.code}
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-3">{course.name}</p>
+                  <div className="flex items-center justify-between">
+                    <Badge 
+                      variant="secondary" 
+                      className="bg-blue-50 text-[#0066CC] hover:bg-blue-100"
+                      style={{ borderRadius: '8px' }}
+                    >
+                      {course.department}
+                    </Badge>
+                    <span className="text-xs text-gray-500">
+                      {course.documentsCount} docs
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
 
-          {filteredCourses.length === 0 && (
+          {!loading && filteredCourses.length === 0 && (
             <div className="flex flex-col items-center justify-center h-64 text-gray-400">
               <FileText className="h-12 w-12 mb-3" />
               <p>No courses found</p>
