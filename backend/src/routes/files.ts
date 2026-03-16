@@ -27,10 +27,18 @@ function isErrorWithMessage(e: unknown): e is { message: string } {
 }
 
 function buildFileUrl(key: string): string {
+  if (!key) return key;
+  // if key already appears to be a full URL, return as-is
+  if (typeof key === 'string' && (key.startsWith('http://') || key.startsWith('https://'))) {
+    return key;
+  }
   const base = process.env.FILE_BUCKET_BASE || process.env.VITE_SPACES_BASE || '';
-  // ensure trailing slash if base provided and doesn't already end with one
-  const sep = base && !base.endsWith('/') ? '/' : '';
-  return base ? `${base}${sep}${key}` : key;
+  if (!base) return key;
+  // remove leading slash from key if present
+  const normalizedKey = key.startsWith('/') ? key.slice(1) : key;
+  // ensure single slash between base and key
+  const sep = base.endsWith('/') ? '' : '/';
+  return `${base}${sep}${normalizedKey}`;
 }
 
 // -----------------------
