@@ -4,7 +4,7 @@ import * as middleware from "../middleware";
 import type { FileItem } from "../types";
 import multer from "multer";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { s3 } from "../services/spaceClient"
+import { s3 } from "../services/spacesClient";
 
 
 // interface MulterRequest extends Request {
