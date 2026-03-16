@@ -120,6 +120,15 @@ export function Dashboard() {
       // optionally reset form
       setUploadFile(null);
       setUploadCourseId(null);
+      // update courses documentsCount for the course
+      setCourses(prev => prev.map(c => c.id === Number((created as any).courseId) ? ({ ...c, documentsCount: (c.documentsCount || 0) + 1 }) : c));
+      // close modal and navigate to the course page to show uploaded file
+      const createdCourseId = Number((created as any).courseId);
+      const course = courses.find(c => c.id === createdCourseId);
+      setUploadOpen(false);
+      if (course) {
+        navigate(`/course/${course.code}`, { state: { courseId: createdCourseId } });
+      }
       // you might refresh UI or navigate to course page
       console.log('uploaded file', created);
     } catch (e:any) {
