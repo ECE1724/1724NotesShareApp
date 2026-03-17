@@ -157,6 +157,39 @@ router.post("/", upload.single("file"), async (req, res) => {
     }
 });
 
+// -----------------------
+// GET /api/files/:id/proxy
+// -----------------------
+// Streams the actual file content through the backend to avoid CORS issues
+// when rendering PDFs in the browser via react-pdf.
+router.get("/:id/proxy", async (_req, res, next) => {
+  try {
+    const file = await db.getFileById(Number(_req.params.id));
+    if (!file) return res.status(404).json({ error: "File not found" });
+
+    const url = buildFileUrl(file.fileUrl);
+    const upstream = await fetch(url);
+    if (!upstream.ok) return res.status(upstream.status).json({ error: "Upstream fetch failed" });
+
+    res.setHeader("Content-Type", upstream.headers.get("content-type") || "application/octet-stream");
+    const contentLength = upstream.headers.get("content-length");
+    if (contentLength) res.setHeader("Content-Length", contentLength);
+
+    const reader = upstream.body?.getReader();
+    if (!reader) return res.status(502).end();
+    const pump = async () => {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) { res.end(); return; }
+        res.write(value);
+      }
+    };
+    await pump();
+  } catch (e) {
+    next(e);
+  }
+});
+
 router.delete("/:id", async (_req, res, next) => {
     try{
         const deleted = await db.delete_file(Number(_req.params.id))

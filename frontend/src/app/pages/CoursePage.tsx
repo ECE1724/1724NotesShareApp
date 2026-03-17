@@ -173,16 +173,18 @@ export function CoursePage(){
                 <h3 className="text-[#002855]">{f.title}</h3>
                 <p className="text-sm text-gray-500">Uploaded by {f.ownerId}</p>
                 <div className="mt-4 flex items-center justify-between">
-                  <a 
-                    href={f.fileUrl && (f.fileUrl.startsWith('http://') || f.fileUrl.startsWith('https://')) 
-                      ? f.fileUrl 
+                  <Button onClick={() => navigate(`/course/${courseCode}/file/${f.id}`)}>
+                    Open
+                  </Button>
+                  <a
+                    href={f.fileUrl && (f.fileUrl.startsWith('http://') || f.fileUrl.startsWith('https://'))
+                      ? f.fileUrl
                       : `https://ece1724-final-project.tor1.digitaloceanspaces.com/${f.fileUrl}`}
-                    target="_blank" 
+                    target="_blank"
                     rel="noreferrer"
                   >
-                    <Button>Open</Button>
+                    <Button variant="outline">Download</Button>
                   </a>
-                  <Button onClick={() => navigate(-1)}>Back to Course</Button>
                 </div>
               </div>
             ))}

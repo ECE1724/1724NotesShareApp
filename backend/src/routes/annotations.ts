@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db } from "../database";
 import type { Annotation, CreateAnnotationInput } from "../types";
+import { emitAnnotationCreated } from "../socket";
 
 const router = Router();
 
@@ -55,6 +56,7 @@ router.post(
       }
 
       const create_res = await db.createAnnotation(annotation)
+      emitAnnotationCreated(create_res);
       res.status(201).json(create_res)
     } catch (e) {
       next(e);

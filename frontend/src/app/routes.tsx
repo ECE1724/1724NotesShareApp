@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router";
 import { Dashboard } from "./pages/Dashboard";
 import { CoursePage } from "./pages/CoursePage";
+import { DocumentViewer } from "./pages/DocumentViewer";
 
 export const router = createBrowserRouter([
   {
@@ -10,5 +11,9 @@ export const router = createBrowserRouter([
   {
     path: "/course/:courseCode",
     Component: CoursePage,
+  },
+  {
+    path: "/course/:courseCode/file/:fileId",
+    Component: DocumentViewer,
   },
 ]);
