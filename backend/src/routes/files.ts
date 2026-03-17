@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "../database";
 import * as middleware from "../middleware";
-import type { FileItem } from "../types";
+import type { FileItem, CreateFileInput } from "../types";
 import multer from "multer";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { s3 } from "../services/spaceClient"
@@ -108,7 +108,7 @@ router.post("/", upload.single("file"), async (req, res) => {
 
         const fileUrl = `${key}`;
         console.log('file url: ', fileUrl)
-        const file_info: FileItem = {
+        const file_info: CreateFileInput = {
             courseId: courseId,
             ownerId: ownerId,
             title: file.originalname,

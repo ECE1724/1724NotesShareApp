@@ -1,9 +1,10 @@
 import { error } from "node:console";
 import { Prisma } from "../generated/prisma/client";
 import { prisma } from "./lib/prisma";
-import type {Course, Department, FileItem, RegisterUserInput, LoginUserInput} from "./types";
+import type {Course, Department, FileItem, RegisterUserInput, LoginUserInput, CreateAnnotationInput, CreateFileInput} from "./types";
 import department from "./routes/department";
 import bcrypt from 'bcrypt';
+import { create } from "node:domain";
 
 // -------------------------
 // Helper: Prisma "record not found" detection (provided)
@@ -83,7 +84,7 @@ export const db = {
   // Create Users
 
   //Create a new file
-  async create_file(file: FileItem){
+  async create_file(file: CreateFileInput){
     return prisma.fileItem.create(
         {
           data:{
@@ -184,8 +185,6 @@ export const db = {
   },
 
 
-
-
   // -------------------------
   // Department
   // -------------------------
@@ -227,6 +226,47 @@ export const db = {
         name: depatmentData.name
       }
     })
-  }
+  },
+
+  // -------------------------
+  // Annotations
+  // -------------------------
+
+  async getFileAnnotations(fileId: number) {
+    const where: Prisma.AnnotationWhereInput = {
+      fileId: fileId,
+    };
+    const annotations = prisma.annotation.findMany({
+      where,
+      orderBy: { id: "asc" },
+    })
+
+    return annotations;
+  },
+
+  async createAnnotation(annotation: CreateAnnotationInput) {
+    return prisma.annotation.create(
+        {
+          data:{
+            fileId: annotation.fileId,
+            authorId: annotation.authorId,
+            parentId: annotation.parentId,
+            anchorJson: annotation.anchorJson,
+            body: annotation.body
+          }
+        }
+    )
+  },
+
+  async deleteAnnotation(id: number){
+    return prisma.annotation.delete(
+        {
+          where: {
+            id: id
+          }
+        }
+    )
+  },
+
 
 };

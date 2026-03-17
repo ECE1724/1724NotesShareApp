@@ -1,4 +1,5 @@
 // Centralized custom types used across routes, middleware, and database layer.
+import { Prisma } from "../generated/prisma/client";
 
 export enum AccessLevel {
   OWNER = "OWNER",
@@ -28,13 +29,13 @@ export interface Course {
 }
 
 export interface FileItem {
-  // id: number;
+  id: number;
   courseId: number;
   ownerId: number;
   title: string;
   fileUrl: string;
-  // createdAt: Date;
-  // updatedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface FileAccess {
@@ -48,7 +49,7 @@ export interface Annotation {
   fileId: number;
   authorId: number;
   parentId: number | null;
-  anchorJson: JSON;
+  anchorJson: Prisma.InputJsonValue;
   body: string;
   createdAt: Date;
   updatedAt: Date;
@@ -95,13 +96,13 @@ export interface CreateAnnotationInput {
   fileId: number;
   authorId: number;
   parentId?: number | null;
-  anchorJson: JSON;
+  anchorJson: Prisma.InputJsonValue;
   body: string;
 }
 
 export interface UpdateAnnotationInput {
   body?: string;
-  anchorJson?: JSON;
+  anchorJson?: Prisma.InputJsonValue;
 }
 
 export type ValidatedLocals = {
