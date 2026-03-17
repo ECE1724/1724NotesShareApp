@@ -55,6 +55,26 @@ router.get(
   },
 );
 
+// -----------------------
+// GET /api/courses/code/:code
+// -----------------------
+/**
+get course by code
+ */
+// router.get(
+//   "/code/:code",
+//   async (req, res, next) => {
+//     try {
+//       const code = String(req.params.code);
+//       const result = await db.getCourseByCode(code);
+//       if (!result) return res.status(404).json({ error: 'Course not found' });
+//       return res.json(result);
+//     } catch (e) {
+//       next(e);
+//     }
+//   },
+// );
+
 router.post(
     "/",
     async (req, res, next) => {

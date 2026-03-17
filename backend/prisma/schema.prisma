@@ -32,7 +32,7 @@ model Department {
 model Course {
   id           Int    @id @default(autoincrement())
   departmentId Int
-  courseCode   String
+  courseCode   String @unique
   title        String
 
   department Department @relation(fields: [departmentId], references: [id])
