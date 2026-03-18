@@ -33,6 +33,7 @@ async function main() {
     where: { email: "alice@example.com" },
     update: {},
     create: {
+      id: 1,
       email: "alice@example.com",
       displayName: "Alice",
       passwordHash: "password",
