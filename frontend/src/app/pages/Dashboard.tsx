@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Upload, FileText, Search } from 'lucide-react';
+import { FileText, Search, User, LogOut } from 'lucide-react';
+import { authClient } from '../../lib/auth-client';
 import { useNavigate } from 'react-router';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -37,8 +38,9 @@ export function Dashboard() {
   const [newCourseDeptId, setNewCourseDeptId] = useState<number | null>(null);
   const [creatingCourse, setCreatingCourse] = useState(false);
 
-  // try to pick up a logged-in user id from localStorage (fallback for dev)
-  const storedUserId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+  // fetch real auth session
+  const { data: sessionData, isPending: sessionLoading } = authClient.useSession();
+  const user = sessionData?.user;
 
   useEffect(() => {
     let mounted = true;
@@ -88,15 +90,15 @@ export function Dashboard() {
   });
 
   // upload handlers
-  const openUploadForCourse = (courseId?: number) => {
-    setUploadCourseId(courseId ?? null);
-    setUploadError(null);
-    setUploadSuccess(null);
-    setUploadOpen(true);
-  };
-
   const handleUploadFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files && e.target.files[0];
+    if (f && f.type !== 'application/pdf') {
+      setUploadError('Only PDF files are allowed');
+      setUploadFile(null);
+      e.target.value = ''; // Reset input
+      return;
+    }
+    setUploadError(null);
     setUploadFile(f ?? null);
   };
 
@@ -111,8 +113,8 @@ export function Dashboard() {
       const fd = new FormData();
       fd.append('file', uploadFile);
       fd.append('courseId', String(uploadCourseId));
-      // prefer a stored user id (from auth), otherwise use seeded demo user (id=1)
-      const ownerId = storedUserId || '1';
+      // prefer the real user ID
+      const ownerId = user?.id || 'seed-alice-001';
       fd.append('ownerId', String(ownerId));
 
       const res = await fetch(`${API_BASE}/files`, { method: 'POST', body: fd });
@@ -298,6 +300,44 @@ export function Dashboard() {
                   style={{ borderRadius: '8px' }}
                 />
               </div>
+              
+              {/* Auth Profile Section */}
+              <div className="ml-4 flex items-center gap-3 border-l border-gray-200 pl-4 min-w-[200px] justify-end">
+                {sessionLoading ? (
+                  <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse"></div>
+                ) : user ? (
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-[#002855] text-white flex items-center justify-center font-medium text-sm">
+                        {user.name?.charAt(0).toUpperCase() || <User className="h-4 w-4" />}
+                      </div>
+                      <span className="text-sm font-medium text-[#002855] hidden sm:inline-block max-w-[100px] truncate" title={user.name}>
+                        {user.name}
+                      </span>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      onClick={async () => {
+                        await authClient.signOut();
+                      }}
+                    >
+                      <LogOut className="h-4 w-4 mr-1 md:mr-2" />
+                      <span className="hidden md:inline">Logout</span>
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <Button variant="ghost" onClick={() => navigate('/login')} className="text-[#0066CC] hover:bg-blue-50">
+                      Login
+                    </Button>
+                    <Button onClick={() => navigate('/register')} className="bg-[#002855] hover:bg-[#003a75] text-white">
+                      Register
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </header>
@@ -374,7 +414,7 @@ export function Dashboard() {
             </div>
             <div className="mb-3">
               <label className="block text-sm mb-1">File</label>
-              <input type="file" onChange={handleUploadFileChange} />
+              <input type="file" accept=".pdf" onChange={handleUploadFileChange} />
             </div>
             {uploadError && <div className="text-sm text-red-600 mb-2">{uploadError}</div>}
             {uploadSuccess && <div className="text-sm text-green-600 mb-2">{uploadSuccess}</div>}

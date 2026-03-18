@@ -33,10 +33,10 @@ async function main() {
     where: { email: "alice@example.com" },
     update: {},
     create: {
-      id: 1,
+      id: "seed-alice-001",
       email: "alice@example.com",
+      name: "Alice",
       displayName: "Alice",
-      passwordHash: "password",
       isAdmin: true,
     },
   });

@@ -8,10 +8,9 @@ export enum AccessLevel {
 }
 
 export interface User {
-  id: number;
+  id: string;
   email: string;
-  displayName: string;
-  passwordHash: string;
+  displayName: string | null;
   isAdmin: boolean;
 }
 
@@ -31,7 +30,7 @@ export interface Course {
 export interface FileItem {
   id: number;
   courseId: number;
-  ownerId: number;
+  ownerId: string;
   title: string;
   fileUrl: string;
   createdAt: Date;
@@ -40,14 +39,14 @@ export interface FileItem {
 
 export interface FileAccess {
   fileId: number;
-  userId: number;
+  userId: string;
   accessLevel: AccessLevel;
 }
 
 export interface Annotation {
   id: number;
   fileId: number;
-  authorId: number;
+  authorId: string;
   parentId: number | null;
   anchorJson: Prisma.InputJsonValue;
   body: string;
@@ -81,7 +80,7 @@ export interface CreateCourseInput {
 
 export interface CreateFileInput {
   courseId: number;
-  ownerId: number;
+  ownerId: string;
   title: string;
   fileUrl: string;
 }
@@ -94,7 +93,7 @@ export interface GrantFileAccessInput {
 
 export interface CreateAnnotationInput {
   fileId: number;
-  authorId: number;
+  authorId: string;
   parentId?: number | null;
   anchorJson: Prisma.InputJsonValue;
   body: string;
