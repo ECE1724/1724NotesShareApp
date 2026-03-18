@@ -29,6 +29,9 @@ export function CoursePage(){
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // try to pick up a logged-in user id from localStorage (fallback for dev)
+  const storedUserId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+
   useEffect(() => {
     if (!courseId) return;
     let mounted = true;
@@ -107,8 +110,9 @@ export function CoursePage(){
       const fd = new FormData();
       fd.append('file', selectedFile);
       fd.append('courseId', String(courseId));
-      // ownerId: temporary placeholder (should come from auth)
-      fd.append('ownerId', '1');
+      // prefer a stored user id (from localStorage), otherwise use seeded demo user (id=1)
+      const ownerId = storedUserId || '1';
+      fd.append('ownerId', String(ownerId));
 
       const res = await fetch(`${API_BASE}/files`, { method: 'POST', body: fd });
       if (!res.ok) {

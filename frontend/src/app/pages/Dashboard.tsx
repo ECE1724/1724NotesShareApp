@@ -111,8 +111,8 @@ export function Dashboard() {
       const fd = new FormData();
       fd.append('file', uploadFile);
       fd.append('courseId', String(uploadCourseId));
-      // prefer a stored user id (from auth), otherwise use seeded demo id for dev testing
-      const ownerId = storedUserId || 'cmmtxyr5f00003zk1eyjz6w8v';
+      // prefer a stored user id (from auth), otherwise use seeded demo user (id=1)
+      const ownerId = storedUserId || '1';
       fd.append('ownerId', String(ownerId));
 
       const res = await fetch(`${API_BASE}/files`, { method: 'POST', body: fd });
