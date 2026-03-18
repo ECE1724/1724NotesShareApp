@@ -37,6 +37,9 @@ export function Dashboard() {
   const [newCourseDeptId, setNewCourseDeptId] = useState<number | null>(null);
   const [creatingCourse, setCreatingCourse] = useState(false);
 
+  // try to pick up a logged-in user id from localStorage (fallback for dev)
+  const storedUserId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+
   useEffect(() => {
     let mounted = true;
     async function load() {
@@ -108,7 +111,9 @@ export function Dashboard() {
       const fd = new FormData();
       fd.append('file', uploadFile);
       fd.append('courseId', String(uploadCourseId));
-      fd.append('ownerId', '1');
+      // prefer a stored user id (from auth), otherwise use seeded demo id for dev testing
+      const ownerId = storedUserId || 'cmmtxyr5f00003zk1eyjz6w8v';
+      fd.append('ownerId', String(ownerId));
 
       const res = await fetch(`${API_BASE}/files`, { method: 'POST', body: fd });
       if (!res.ok) {
