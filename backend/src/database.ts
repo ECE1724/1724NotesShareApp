@@ -1,7 +1,16 @@
 import { error } from "node:console";
 import { Prisma } from "../generated/prisma/client";
 import { prisma } from "./lib/prisma";
-import type {Course, Department, FileItem, RegisterUserInput, LoginUserInput, CreateAnnotationInput, CreateFileInput} from "./types";
+import type {
+  Course,
+  Department,
+  FileItem,
+  RegisterUserInput,
+  LoginUserInput,
+  CreateAnnotationInput,
+  CreateFileInput,
+  FileAccess
+} from "./types";
 import department from "./routes/department";
 import bcrypt from 'bcrypt';
 import { create } from "node:domain";
@@ -267,6 +276,46 @@ export const db = {
         }
     )
   },
+
+  async get_all_file_access(){
+    return prisma.fileAccess.findMany()
+  },
+
+  async create_or_update_file_access(file_access: FileAccess){
+    const all_file_access = await db.get_all_file_access()
+    let exist = false
+    for (let i = 0; i < all_file_access.length; i++){
+      if (all_file_access[i].fileId === file_access.fileId && all_file_access[i].userId === file_access.userId){
+        exist = true
+        break
+      }
+    }
+    if (exist){
+      return prisma.fileAccess.update({
+        where: {
+          fileId_userId: {
+            fileId: file_access.fileId,
+            userId: file_access.userId
+          }
+        },
+        data: {
+          accessLevel: file_access.accessLevel
+        }
+      });
+    }
+    else{
+      return prisma.fileAccess.create(
+          {
+            data: {
+              fileId: file_access.fileId,
+              userId: file_access.userId,
+              accessLevel: file_access.accessLevel
+            }
+          }
+      )
+    }
+
+  }
 
 
 };

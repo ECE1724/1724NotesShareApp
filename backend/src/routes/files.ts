@@ -190,6 +190,14 @@ router.get("/:id/proxy", async (_req, res, next) => {
   }
 });
 
+
+
+// -----------------------
+// DELETE /api/files/:id
+// -----------------------
+/**
+ *  Delete a file
+ */
 router.delete("/:id", async (_req, res, next) => {
     try{
         const deleted = await db.delete_file(Number(_req.params.id))
