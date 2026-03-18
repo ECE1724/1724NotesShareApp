@@ -1,16 +1,18 @@
 import { useParams, useNavigate, useLocation } from 'react-router';
 import { useEffect, useState, useRef } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
 import { API_BASE } from '../config';
+import { authClient } from '../../lib/auth-client';
 
 type FileItem = {
   id: number;
+  ownerId: string;
   courseId: number;
-  ownerId: number;
   title: string;
   fileUrl: string;
   createdAt?: string;
+  owner?: { name: string; displayName?: string | null };
 };
 
 export function CoursePage(){
@@ -19,7 +21,6 @@ export function CoursePage(){
   const location = useLocation();
   const passedCourseId = (location.state as any)?.courseId;
   const [courseId, setCourseId] = useState<number | null>(passedCourseId ?? null);
-  const [resolvingCourse, setResolvingCourse] = useState(false);
 
   const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -29,8 +30,9 @@ export function CoursePage(){
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // try to pick up a logged-in user id from localStorage (fallback for dev)
-  const storedUserId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+  // fetch real auth session
+  const { data: sessionData } = authClient.useSession();
+  const user = sessionData?.user;
 
   useEffect(() => {
     if (!courseId) return;
@@ -100,6 +102,13 @@ export function CoursePage(){
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files && e.target.files[0];
+    if (f && f.type !== 'application/pdf') {
+      setError('Only PDF files are allowed');
+      setSelectedFile(null);
+      e.target.value = ''; // Reset input
+      return;
+    }
+    setError(null);
     setSelectedFile(f ?? null);
   };
 
@@ -110,8 +119,8 @@ export function CoursePage(){
       const fd = new FormData();
       fd.append('file', selectedFile);
       fd.append('courseId', String(courseId));
-      // prefer a stored user id (from localStorage), otherwise use seeded demo user (id=1)
-      const ownerId = storedUserId || '1';
+      // prefer the real user ID
+      const ownerId = user?.id || '1';
       fd.append('ownerId', String(ownerId));
 
       const res = await fetch(`${API_BASE}/files`, { method: 'POST', body: fd });
@@ -122,6 +131,8 @@ export function CoursePage(){
       // refresh
       setSelectedFile(null);
       const created = await res.json();
+      // manually append owner relation so the UI can immediately display the uploader's name
+      created.owner = { name: user?.name || user?.email || 'You' };
       setFiles(prev => [created, ...prev]);
     } catch (e:any){
       setError(e.message || 'Upload error');
@@ -138,31 +149,44 @@ export function CoursePage(){
       </aside>
 
       <main className="flex-1 p-8">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">Back</Button>
-        <h1 className="text-2xl text-[#002855] mb-2">{courseCode} Documents</h1>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => navigate(-1)} 
+          className="mb-6 text-gray-500 hover:text-[#002855] hover:bg-gray-100 px-3 py-2 transition-colors"
+          style={{ borderRadius: '8px' }}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Courses
+        </Button>
+        <h1 className="text-2xl font-semibold text-[#002855] mb-2">{courseCode} Documents</h1>
 
         {!courseId && (
           <div className="p-4 bg-yellow-50 border border-yellow-200 rounded">Course ID missing — this view expects navigation from the dashboard. If you navigated directly, provide a course id in state.</div>
         )}
 
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Upload new file</label>
-          <div className="flex items-center gap-3">
-            <input ref={fileInputRef} type="file" onChange={handleFileChange} className="hidden" />
-            <div className="text-sm text-gray-700">{selectedFile ? selectedFile.name : 'Choose File'}</div>
+        <div className="mb-8 p-6 bg-gray-50 border border-gray-200 rounded-xl" style={{ borderRadius: '12px' }}>
+          <h2 className="text-lg font-medium text-[#002855] mb-4">Upload new material</h2>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="flex-1 w-full bg-white border border-gray-300 rounded-lg px-4 py-2 flex items-center justify-between" style={{ borderRadius: '8px' }}>
+              <span className="text-sm text-gray-500 truncate max-w-[200px] sm:max-w-xs">{selectedFile ? selectedFile.name : 'No file chosen...'}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                className="ml-2 text-[#0066CC] border-blue-200 hover:bg-blue-50 relative bottom-0"
+              >
+                Browse
+              </Button>
+            </div>
+            <input ref={fileInputRef} type="file" accept=".pdf" onChange={handleFileChange} className="hidden" />
             <Button
-              onClick={() => {
-                // If no file selected, open the file picker; otherwise upload
-                if (!selectedFile) {
-                  fileInputRef.current?.click();
-                } else {
-                  handleUpload();
-                }
-              }}
-              disabled={uploading}
-              className="bg-[#0066CC] text-white"
+              onClick={handleUpload}
+              disabled={uploading || !selectedFile}
+              className="bg-[#0066CC] hover:bg-[#0052A3] text-white w-full sm:w-auto px-6 h-[40px]"
+              style={{ borderRadius: '8px' }}
             >
-              {uploading ? 'Uploading...' : (selectedFile ? 'Upload' : 'Choose file')}
+              {uploading ? 'Uploading...' : 'Upload'}
             </Button>
           </div>
           {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
@@ -173,21 +197,39 @@ export function CoursePage(){
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {files.map(f => (
-              <div key={f.id} className="bg-white border rounded-lg p-4">
-                <h3 className="text-[#002855]">{f.title}</h3>
-                <p className="text-sm text-gray-500">Uploaded by {f.ownerId}</p>
-                <div className="mt-4 flex items-center justify-between">
-                  <Button onClick={() => navigate(`/course/${courseCode}/file/${f.id}`)}>
-                    Open
+              <div key={f.id} className="bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow rounded-xl p-5 flex flex-col justify-between" style={{ borderRadius: '12px' }}>
+                <div>
+                  <h3 className="text-lg font-medium text-[#002855] hover:text-[#0066CC] cursor-pointer mb-2 line-clamp-2"
+                      onClick={() => navigate(`/course/${courseCode}/file/${f.id}`)}>
+                    {f.title}
+                  </h3>
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-[#0066CC] text-xs font-semibold">
+                      {(f.owner?.name || f.owner?.displayName || String(f.ownerId)).charAt(0).toUpperCase()}
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Uploaded by <span className="font-medium text-gray-700">{f.owner?.name || f.owner?.displayName || f.ownerId}</span>
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center gap-3 pt-4 border-t border-gray-100">
+                  <Button 
+                    className="flex-1 bg-gray-50 hover:bg-gray-100 text-[#002855] border border-gray-200"
+                    style={{ borderRadius: '8px' }}
+                    onClick={() => navigate(`/course/${courseCode}/file/${f.id}`)}>
+                    View Note
                   </Button>
                   <a
+                    className="flex-1"
                     href={f.fileUrl && (f.fileUrl.startsWith('http://') || f.fileUrl.startsWith('https://'))
                       ? f.fileUrl
                       : `https://ece1724-final-project.tor1.digitaloceanspaces.com/${f.fileUrl}`}
                     target="_blank"
                     rel="noreferrer"
                   >
-                    <Button variant="outline">Download</Button>
+                    <Button variant="outline" className="w-full border-gray-200 text-[#0066CC] hover:bg-blue-50" style={{ borderRadius: '8px' }}>
+                      Download
+                    </Button>
                   </a>
                 </div>
               </div>

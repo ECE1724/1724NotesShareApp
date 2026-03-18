@@ -3,7 +3,6 @@ import { Prisma } from "../generated/prisma/client";
 import { prisma } from "./lib/prisma";
 import type {Course, Department, FileItem, RegisterUserInput, LoginUserInput, CreateAnnotationInput, CreateFileInput} from "./types";
 import department from "./routes/department";
-import bcrypt from 'bcrypt';
 import { create } from "node:domain";
 
 // -------------------------
@@ -24,38 +23,6 @@ export const db = {
   // -------------------------
   // Users
   // -------------------------
-
-  // Create Users
-  async createUser(user: RegisterUserInput) {
-    const hashedPassword = await bcrypt.hash(user.password, 10);
-
-    return prisma.user.create({
-      data: {
-        email: user.email,
-        displayName: user.displayName,
-        passwordHash: hashedPassword
-      }
-    })
-  },
-
-  // User Login
-  async loginUser(input: LoginUserInput) {
-    const user = await prisma.user.findUnique({
-      where: { email: input.email }
-    });
-
-    if (!user) {
-      throw new Error("Invalid email or password");
-    }
-
-    const passwordMatched = await bcrypt.compare(String(input.password), user.passwordHash);
-
-    if (!passwordMatched) {
-      throw new Error("Invalid email or password");
-    }
-
-    return user;
-  },
 
   // Get all users
   async getAllUsers() {
@@ -117,6 +84,11 @@ export const db = {
       prisma.fileItem.findMany({
         where,
         orderBy: { id: "asc" },
+        include: {
+          owner: {
+            select: { name: true, displayName: true }
+          }
+        }
       }),
       prisma.fileItem.count({
         where,
@@ -239,6 +211,11 @@ export const db = {
     const annotations = prisma.annotation.findMany({
       where,
       orderBy: { id: "asc" },
+      include: {
+        author: {
+          select: { name: true, displayName: true }
+        }
+      }
     })
 
     return annotations;
@@ -253,6 +230,11 @@ export const db = {
             parentId: annotation.parentId,
             anchorJson: annotation.anchorJson,
             body: annotation.body
+          },
+          include: {
+            author: {
+              select: { name: true, displayName: true }
+            }
           }
         }
     )

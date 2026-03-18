@@ -49,7 +49,7 @@ router.post(
     try {
       const annotation: CreateAnnotationInput = {
         fileId: Number(req.body.fileId),
-        authorId: Number(req.body.authorId),
+        authorId: String(req.body.authorId),
         parentId: req.body.parentId ? Number(req.body.parentId) : null,
         anchorJson: req.body.anchorJson,
         body: req.body.body

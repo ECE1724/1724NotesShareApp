@@ -9,6 +9,7 @@ import { Button } from '../components/ui/button';
 import { Textarea } from '../components/ui/textarea';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { API_BASE, SPACES_BASE } from '../config';
+import { authClient } from '../../lib/auth-client';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -22,18 +23,19 @@ type AnchorData = { page: number; text: string; rects: AnchorRect[] };
 type AnnotationItem = {
   id: number;
   fileId: number;
-  authorId: number;
+  authorId: string;
   parentId: number | null;
   anchorJson: AnchorData | Record<string, never>;
   body: string;
   createdAt: string;
   updatedAt: string;
+  author?: { name: string; displayName?: string | null };
 };
 
 type FileInfo = {
   id: number;
   courseId: number;
-  ownerId: number;
+  ownerId: string;
   title: string;
   fileUrl: string;
 };
@@ -62,6 +64,10 @@ export function DocumentViewer() {
 
   const [fileInfo, setFileInfo] = useState<FileInfo | null>(null);
   const [annotations, setAnnotations] = useState<AnnotationItem[]>([]);
+
+  // fetch real auth session
+  const { data: sessionData } = authClient.useSession();
+  const user = sessionData?.user;
   const [loading, setLoading] = useState(true);
   const [numPages, setNumPages] = useState<number>(0);
 
@@ -219,7 +225,7 @@ export function DocumentViewer() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fileId,
-          authorId: 1,
+          authorId: user?.id || '1',
           parentId: replyTo,
           anchorJson: pendingAnchor || {},
           body: newComment.trim(),
@@ -227,6 +233,8 @@ export function DocumentViewer() {
       });
       if (!res.ok) throw new Error('Failed to create annotation');
       const created: AnnotationItem = await res.json();
+      // append author so it displays correctly without reload
+      created.author = { name: user?.name || user?.email || 'You' };
       setAnnotations(prev => prev.some(a => a.id === created.id) ? prev : [...prev, created]);
       setNewComment('');
       setReplyTo(null);
@@ -412,9 +420,9 @@ export function DocumentViewer() {
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-[#0066CC] flex items-center justify-center text-white text-sm">
-                          {String(ann.authorId).charAt(0)}
+                          {(ann.author?.name || ann.author?.displayName || String(ann.authorId)).charAt(0).toUpperCase()}
                         </div>
-                        <p className="text-sm text-[#002855]">User {ann.authorId}</p>
+                        <p className="text-sm font-medium text-[#002855]">{ann.author?.name || ann.author?.displayName || `User ${ann.authorId}`}</p>
                       </div>
                       <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDelete(ann.id); }} className="h-auto p-1 text-gray-400 hover:text-red-500">
                         <Trash2 className="h-3 w-3" />
@@ -434,9 +442,9 @@ export function DocumentViewer() {
                       <div className="flex items-start justify-between mb-1">
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center text-white text-xs">
-                            {String(reply.authorId).charAt(0)}
+                            {(reply.author?.name || reply.author?.displayName || String(reply.authorId)).charAt(0).toUpperCase()}
                           </div>
-                          <p className="text-sm text-[#002855]">User {reply.authorId}</p>
+                          <p className="text-sm font-medium text-[#002855]">{reply.author?.name || reply.author?.displayName || `User ${reply.authorId}`}</p>
                         </div>
                         <Button variant="ghost" size="sm" onClick={() => handleDelete(reply.id)} className="h-auto p-1 text-gray-400 hover:text-red-500">
                           <Trash2 className="h-3 w-3" />

@@ -106,9 +106,9 @@ router.post("/", upload.single("file"), async (req, res) => {
     try {
         const file = req.file;
         const courseId = Number(req.body.courseId)
-        const ownerId = Number(req.body.ownerId)
+        const ownerId = String(req.body.ownerId)
         console.log('course id: ', Number(courseId))
-        console.log('owner id: ', Number(ownerId))
+        console.log('owner id: ', ownerId)
         console.log('req.body keys:', Object.keys(req.body))
         console.log('file present?', !!req.file)
         if (!file) return res.status(400).json({error: "No file uploaded"});
