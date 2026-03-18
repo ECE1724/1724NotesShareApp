@@ -19,16 +19,20 @@ async function main() {
     },
   });
 
-  const ece1762 = await prisma.course.create({
-    data: {
+  const ece1762 = await prisma.course.upsert({
+    where: { courseCode: "ECE1762" },
+    update: {},
+    create: {
       departmentId: ece.id,
       courseCode: "ECE1762",
       title: "Software Design",
     },
   });
 
-  const alice = await prisma.user.create({
-    data: {
+  const alice = await prisma.user.upsert({
+    where: { email: "alice@example.com" },
+    update: {},
+    create: {
       email: "alice@example.com",
       displayName: "Alice",
       passwordHash: "password",
@@ -36,21 +40,36 @@ async function main() {
     },
   });
 
-  const file = await prisma.fileItem.create({
-    data: {
+  // query file by title within this course
+  const files = await prisma.fileItem.findMany({
+    where: {
       courseId: ece1762.id,
-      ownerId: alice.id,
       title: "ece1762note1",
-      fileUrl: "Binary%20Search%20Trees.pdf",
     },
+    take: 1,
   });
+  let file = files.length > 0 ? files[0] : null;
 
-  await prisma.fileAccess.create({
-    data: {
-      fileId: file.id,
-      userId: alice.id,
-      accessLevel: AccessLevel.OWNER,
-    },
+  if (!file) {
+    file = await prisma.fileItem.create({
+      data: {
+        courseId: ece1762.id,
+        ownerId: alice.id,
+        title: "ece1762note1",
+        fileUrl: "Binary%20Search%20Trees.pdf",
+      },
+    });
+  }
+
+  await prisma.fileAccess.createMany({
+    data: [
+      {
+        fileId: file.id,
+        userId: alice.id,
+        accessLevel: AccessLevel.OWNER,
+      },
+    ],
+    skipDuplicates: true,
   });
 
 
