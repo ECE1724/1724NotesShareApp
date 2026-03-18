@@ -114,7 +114,7 @@ export function Dashboard() {
       fd.append('file', uploadFile);
       fd.append('courseId', String(uploadCourseId));
       // prefer the real user ID
-      const ownerId = user?.id || '1';
+      const ownerId = user?.id || 'seed-alice-001';
       fd.append('ownerId', String(ownerId));
 
       const res = await fetch(`${API_BASE}/files`, { method: 'POST', body: fd });

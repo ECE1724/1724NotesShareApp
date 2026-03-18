@@ -120,7 +120,7 @@ export function CoursePage(){
       fd.append('file', selectedFile);
       fd.append('courseId', String(courseId));
       // prefer the real user ID
-      const ownerId = user?.id || '1';
+      const ownerId = user?.id || 'seed-alice-001';
       fd.append('ownerId', String(ownerId));
 
       const res = await fetch(`${API_BASE}/files`, { method: 'POST', body: fd });

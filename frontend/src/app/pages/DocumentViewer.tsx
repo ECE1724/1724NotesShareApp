@@ -225,7 +225,7 @@ export function DocumentViewer() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fileId,
-          authorId: user?.id || '1',
+          authorId: user?.id || 'seed-alice-001',
           parentId: replyTo,
           anchorJson: pendingAnchor || {},
           body: newComment.trim(),
