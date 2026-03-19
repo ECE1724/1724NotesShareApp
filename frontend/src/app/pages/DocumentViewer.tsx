@@ -78,6 +78,12 @@ export function DocumentViewer() {
   const [highlightedAnnId, setHighlightedAnnId] = useState<number | null>(null);
 
   const [selectionPopup, setSelectionPopup] = useState<{ x: number; y: number; anchor: AnchorData } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
+
+  const showToast = (message: string, type: 'error' | 'success' = 'error') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   const socketRef = useRef<Socket | null>(null);
   const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -231,9 +237,14 @@ export function DocumentViewer() {
           body: newComment.trim(),
         }),
       });
-      if (!res.ok) throw new Error('Failed to create annotation');
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        if (res.status === 401) showToast('Please log in to add annotations');
+        else if (res.status === 403) showToast(data?.error || 'You do not have permission to annotate this file');
+        else showToast(data?.error || 'Failed to create annotation');
+        return;
+      }
       const created: AnnotationItem = await res.json();
-      // append author so it displays correctly without reload
       created.author = { name: user?.name || user?.email || 'You' };
       setAnnotations(prev => prev.some(a => a.id === created.id) ? prev : [...prev, created]);
       setNewComment('');
@@ -241,6 +252,7 @@ export function DocumentViewer() {
       setPendingAnchor(null);
     } catch (e) {
       console.error('Error sending comment', e);
+      showToast('Network error — could not send annotation');
     } finally {
       setSubmitting(false);
     }
@@ -251,9 +263,16 @@ export function DocumentViewer() {
       const res = await apiFetch(`${API_BASE}/annotations/${id}`, { method: 'DELETE' });
       if (res.ok || res.status === 204) {
         setAnnotations(prev => prev.filter(a => a.id !== id && a.parentId !== id));
+        return;
       }
+      const data = await res.json().catch(() => null);
+      if (res.status === 401) showToast('Please log in to delete annotations');
+      else if (res.status === 403) showToast(data?.error || 'You can only delete your own annotations');
+      else if (res.status === 404) showToast('Annotation not found — it may have been already deleted');
+      else showToast(data?.error || 'Failed to delete annotation');
     } catch (e) {
       console.error('Error deleting annotation', e);
+      showToast('Network error — could not delete annotation');
     }
   };
 
@@ -506,6 +525,19 @@ export function DocumentViewer() {
           </div>
         </div>
       </aside>
+
+      {/* Toast notification */}
+      {toast && (
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-lg shadow-lg text-sm font-medium transition-all ${
+          toast.type === 'error'
+            ? 'text-white'
+            : 'bg-green-600 text-white'
+        }`}
+          style={toast.type === 'error' ? { backgroundColor: '#007894' } : undefined}
+        >
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 }
