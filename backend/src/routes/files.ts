@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "../database";
-import * as middleware from "../middleware";
-import type { FileItem, CreateFileInput } from "../types";
+import { requireAuth, requireFileAccess } from "../middleware";
+import type { FileItem, CreateFileInput, AccessLevel } from "../types";
 import multer from "multer";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { s3 } from "../services/spacesClient";
@@ -102,11 +102,11 @@ router.get(
 /**
  *  Upload a single file
  */
-router.post("/", upload.single("file"), async (req, res) => {
+router.post("/", requireAuth, upload.single("file"), async (req, res) => {
     try {
         const file = req.file;
         const courseId = Number(req.body.courseId)
-        const ownerId = String(req.body.ownerId)
+        const ownerId = req.userId!;
         console.log('course id: ', Number(courseId))
         console.log('owner id: ', ownerId)
         console.log('req.body keys:', Object.keys(req.body))
@@ -142,7 +142,13 @@ router.post("/", upload.single("file"), async (req, res) => {
             fileUrl: fileUrl,
         }
         const created_file = await db.create_file(file_info)
-        // Return created file with a full public URL
+
+        await db.create_or_update_file_access({
+          fileId: created_file.id,
+          userId: ownerId,
+          accessLevel: "OWNER" as any,
+        });
+
         const created_with_url = {
           ...created_file,
           fileUrl: buildFileUrl((created_file as any).fileUrl || fileUrl),
@@ -198,7 +204,7 @@ router.get("/:id/proxy", async (_req, res, next) => {
 /**
  *  Delete a file
  */
-router.delete("/:id", async (_req, res, next) => {
+router.delete("/:id", requireAuth, requireFileAccess("OWNER" as AccessLevel), async (_req, res, next) => {
     try{
         const deleted = await db.delete_file(Number(_req.params.id))
         res.status(204).json({})

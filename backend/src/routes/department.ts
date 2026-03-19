@@ -1,19 +1,8 @@
 import { Router } from "express";
 import { db } from "../database";
+import { requireAuth } from "../middleware";
 
 const router = Router();
-
-// -----------------------
-// Helper (provided)
-// -----------------------
-function isErrorWithMessage(e: unknown): e is { message: string } {
-  return (
-    typeof e === "object" &&
-    e !== null &&
-    "message" in e &&
-    typeof (e as { message?: unknown }).message === "string"
-  );
-}
 
 // -----------------------
 // GET /api/departments/
@@ -57,6 +46,7 @@ router.get(
 
 router.post(
     "/",
+    requireAuth,
     async (req, res, next) => {
         try {
             const department = await db.createDepartment(req.body)

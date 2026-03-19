@@ -1,21 +1,11 @@
 import { Router } from "express";
 import { db } from "../database";
-import type { Annotation, CreateAnnotationInput } from "../types";
+import type { Annotation, CreateAnnotationInput, AccessLevel } from "../types";
 import { emitAnnotationCreated } from "../socket";
+import { requireAuth, requireFileAccess } from "../middleware";
+import { prisma } from "../lib/prisma";
 
 const router = Router();
-
-// -----------------------
-// Helper (provided)
-// -----------------------
-function isErrorWithMessage(e: unknown): e is { message: string } {
-  return (
-    typeof e === "object" &&
-    e !== null &&
-    "message" in e &&
-    typeof (e as { message?: unknown }).message === "string"
-  );
-}
 
 // -----------------------
 // GET /api/annottions/file/:id
@@ -45,11 +35,13 @@ create an annotation req body: {fileId:... , authorId:... , parentId:... , ancho
  */
 router.post(
   "/",
+  requireAuth,
+  requireFileAccess("COLLABORATOR" as AccessLevel),
   async (req, res, next) => {
     try {
       const annotation: CreateAnnotationInput = {
         fileId: Number(req.body.fileId),
-        authorId: String(req.body.authorId),
+        authorId: req.userId!,
         parentId: req.body.parentId ? Number(req.body.parentId) : null,
         anchorJson: req.body.anchorJson,
         body: req.body.body
@@ -72,14 +64,22 @@ delete an annotation by id
  */
 router.delete(
   "/:id",
+  requireAuth,
   async (req, res, next) => {
-    try{
-        const deleted = await db.deleteAnnotation(Number(req.params.id))
-        res.status(204).json({})
+    try {
+      const annotation = await prisma.annotation.findUnique({ where: { id: Number(req.params.id) } });
+      if (!annotation) return res.status(404).json({ error: "Annotation not found" });
+
+      if (annotation.authorId !== req.userId && !req.userIsAdmin) {
+        return res.status(403).json({ error: "Can only delete your own annotations" });
+      }
+
+      await db.deleteAnnotation(annotation.id);
+      res.status(204).json({});
+    } catch (err) {
+      res.status(400).json({ error: "Error deleting annotation" });
     }
-    catch (err){
-        res.status(400).json({error: "Error deleting annotation"})
-    }
-})
+  },
+)
 
 export default router;

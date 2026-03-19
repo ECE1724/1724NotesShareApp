@@ -8,7 +8,7 @@ import { io, Socket } from 'socket.io-client';
 import { Button } from '../components/ui/button';
 import { Textarea } from '../components/ui/textarea';
 import { ScrollArea } from '../components/ui/scroll-area';
-import { API_BASE, SPACES_BASE } from '../config';
+import { API_BASE, SPACES_BASE, apiFetch } from '../config';
 import { authClient } from '../../lib/auth-client';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -90,8 +90,8 @@ export function DocumentViewer() {
     async function loadData() {
       try {
         const [fileRes, annRes] = await Promise.all([
-          fetch(`${API_BASE}/files/${fileId}`),
-          fetch(`${API_BASE}/annotations/file/${fileId}`),
+          apiFetch(`${API_BASE}/files/${fileId}`),
+          apiFetch(`${API_BASE}/annotations/file/${fileId}`),
         ]);
         if (!mounted) return;
         if (fileRes.ok) setFileInfo(await fileRes.json());
@@ -220,7 +220,7 @@ export function DocumentViewer() {
     if (!newComment.trim() || !fileId) return;
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_BASE}/annotations`, {
+      const res = await apiFetch(`${API_BASE}/annotations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -248,7 +248,7 @@ export function DocumentViewer() {
 
   const handleDelete = async (id: number) => {
     try {
-      const res = await fetch(`${API_BASE}/annotations/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`${API_BASE}/annotations/${id}`, { method: 'DELETE' });
       if (res.ok || res.status === 204) {
         setAnnotations(prev => prev.filter(a => a.id !== id && a.parentId !== id));
       }

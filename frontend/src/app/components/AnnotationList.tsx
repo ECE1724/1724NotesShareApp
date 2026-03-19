@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { API_BASE } from '../config';
+import { API_BASE, apiFetch } from '../config';
 
 export function AnnotationList({ fileId }: { fileId: number }){
   const [annotations, setAnnotations] = useState<any[]>([]);
@@ -7,7 +7,7 @@ export function AnnotationList({ fileId }: { fileId: number }){
   useEffect(() => {
     let mounted = true;
     async function load(){
-      const res = await fetch(`${API_BASE}/annotations?fileId=${fileId}`);
+      const res = await apiFetch(`${API_BASE}/annotations?fileId=${fileId}`);
       const data = await res.json();
       if (!mounted) return;
       setAnnotations(data.annotations || []);

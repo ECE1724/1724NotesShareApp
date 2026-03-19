@@ -263,6 +263,25 @@ export const db = {
     return prisma.fileAccess.findMany()
   },
 
+  async getFileAccessForUser(fileId: number, userId: string) {
+    return prisma.fileAccess.findUnique({
+      where: { fileId_userId: { fileId, userId } },
+    });
+  },
+
+  async getFileAccessByFile(fileId: number) {
+    return prisma.fileAccess.findMany({
+      where: { fileId },
+      include: { user: { select: { id: true, name: true, email: true } } },
+    });
+  },
+
+  async deleteFileAccess(fileId: number, userId: string) {
+    return prisma.fileAccess.delete({
+      where: { fileId_userId: { fileId, userId } },
+    });
+  },
+
   async create_or_update_file_access(file_access: FileAccess){
     const all_file_access = await db.get_all_file_access()
     let exist = false

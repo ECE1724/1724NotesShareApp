@@ -2,7 +2,7 @@ import { useParams, useNavigate, useLocation } from 'react-router';
 import { useEffect, useState, useRef } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import { API_BASE } from '../config';
+import { API_BASE, apiFetch } from '../config';
 import { authClient } from '../../lib/auth-client';
 
 type FileItem = {
@@ -41,7 +41,7 @@ export function CoursePage(){
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`${API_BASE}/files/course/${courseId}`);
+        const res = await apiFetch(`${API_BASE}/files/course/${courseId}`);
         if (!res.ok) throw new Error('Failed to load files');
         const data = await res.json();
         if (!mounted) return;
@@ -65,7 +65,7 @@ export function CoursePage(){
       if (courseId || !courseCode) return;
       try {
         // first try dedicated endpoint
-        const res = await fetch(`${API_BASE}/courses/code/${encodeURIComponent(courseCode)}`);
+        const res = await apiFetch(`${API_BASE}/courses/code/${encodeURIComponent(courseCode)}`);
         if (res.ok) {
           const data = await res.json();
           if (!mounted) return;
@@ -76,11 +76,11 @@ export function CoursePage(){
         }
 
         // fallback: fetch departments and their courses (same approach as Dashboard)
-        const depRes = await fetch(`${API_BASE}/departments`);
+        const depRes = await apiFetch(`${API_BASE}/departments`);
         const depsRaw = await depRes.json();
         const depsList = Array.isArray(depsRaw) ? depsRaw : (depsRaw.departments || []);
         for (const d of depsList) {
-          const cl = await fetch(`${API_BASE}/courses/department/${d.id}`).then(r => r.json()).catch(() => null);
+          const cl = await apiFetch(`${API_BASE}/courses/department/${d.id}`).then(r => r.json()).catch(() => null);
           const arr = Array.isArray(cl) ? cl : (cl?.courses || cl || []);
           const found = arr.find((c:any) => (c.courseCode || c.code || String(c.id)) === courseCode);
           if (found) {
@@ -123,7 +123,7 @@ export function CoursePage(){
       const ownerId = user?.id || 'seed-alice-001';
       fd.append('ownerId', String(ownerId));
 
-      const res = await fetch(`${API_BASE}/files`, { method: 'POST', body: fd });
+      const res = await apiFetch(`${API_BASE}/files`, { method: 'POST', body: fd });
       if (!res.ok) {
         const json = await res.json().catch(() => null);
         throw new Error(json?.error || 'Upload failed');

@@ -1,51 +1,57 @@
 import { Router } from "express";
 import { db } from "../database";
+import { requireAuth } from "../middleware";
+import { prisma } from "../lib/prisma";
 
 const router = Router();
 
-// -----------------------
-// Helper (provided)
-// -----------------------
-function isErrorWithMessage(e: unknown): e is { message: string } {
-    return (
-        typeof e === "object" &&
-        e !== null &&
-        "message" in e &&
-        typeof (e as { message?: unknown }).message === "string"
-    );
-}
-
-// -----------------------
-// GET /api/files/access
-// -----------------------
-/**
- *  Get all file access permission for a user
- */
-router.get("/", async (_req, res, next) => {
-    try{
-        const all_file_access = await db.get_all_file_access()
-        res.status(200).json(all_file_access)
+// GET /api/fileAccess/file/:id — get all access records for a file (only OWNER or Admin)
+router.get("/file/:id", requireAuth, async (req, res, next) => {
+  try {
+    const fileId = Number(req.params.id);
+    const access = await db.getFileAccessForUser(fileId, req.userId!);
+    if (!req.userIsAdmin && (!access || access.accessLevel !== "OWNER")) {
+      return res.status(403).json({ error: "Only file owner can view access list" });
     }
-    catch (err){
-        res.status(400).json({error: "Error getting file access"})
-    }
+    const records = await db.getFileAccessByFile(fileId);
+    res.status(200).json(records);
+  } catch (err) {
+    res.status(400).json({ error: "Error getting file access" });
+  }
 });
 
+// POST /api/fileAccess — grant or update access (only OWNER or Admin)
+router.post("/", requireAuth, async (req, res, next) => {
+  try {
+    const { fileId, userId, accessLevel } = req.body;
+    const myAccess = await db.getFileAccessForUser(Number(fileId), req.userId!);
+    if (!req.userIsAdmin && (!myAccess || myAccess.accessLevel !== "OWNER")) {
+      return res.status(403).json({ error: "Only file owner can grant access" });
+    }
+    const file_access = await db.create_or_update_file_access({
+      fileId: Number(fileId),
+      userId: String(userId),
+      accessLevel,
+    });
+    res.status(201).json(file_access);
+  } catch (err) {
+    res.status(400).json({ error: "Error creating or updating file access" });
+  }
+});
 
-// -----------------------
-// POST /api/files/access
-// -----------------------
-/**
- *  Create a file access permission for a user
- */
-router.post("/", async (_req, res, next) => {
-    try{
-        const file_access = await db.create_or_update_file_access(_req.body)
-        res.status(201).json(file_access)
+// DELETE /api/fileAccess — revoke access (only OWNER or Admin)
+router.delete("/", requireAuth, async (req, res, next) => {
+  try {
+    const { fileId, userId } = req.body;
+    const myAccess = await db.getFileAccessForUser(Number(fileId), req.userId!);
+    if (!req.userIsAdmin && (!myAccess || myAccess.accessLevel !== "OWNER")) {
+      return res.status(403).json({ error: "Only file owner can revoke access" });
     }
-    catch (err){
-        res.status(400).json({error: "Error creating or updating file access"})
-    }
+    await db.deleteFileAccess(Number(fileId), String(userId));
+    res.status(204).json({});
+  } catch (err) {
+    res.status(400).json({ error: "Error revoking file access" });
+  }
 });
 
 export default router;

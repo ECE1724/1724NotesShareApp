@@ -5,11 +5,10 @@ import { useNavigate } from 'react-router';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
+import { API_BASE, apiFetch } from '../config';
 
 type Department = { id: number; name: string; code: string };
 type Course = { id: number; code: string; name: string; department: string; documentsCount: number; color: string };
-
-const API_BASE = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000') + '/api';
 
 export function Dashboard() {
   const navigate = useNavigate();
@@ -46,14 +45,14 @@ export function Dashboard() {
     let mounted = true;
     async function load() {
       try {
-        const depRes = await fetch(`${API_BASE}/departments`);
+        const depRes = await apiFetch(`${API_BASE}/departments`);
         const depsRaw = await depRes.json();
         const depsList: Department[] = Array.isArray(depsRaw) ? depsRaw : (depsRaw.departments || []);
         if (!mounted) return;
         setDepartments(depsList);
 
         // fetch courses for all departments in parallel
-        const courseLists = await Promise.all(depsList.map(d => fetch(`${API_BASE}/courses/department/${d.id}`).then(r => r.json())));
+        const courseLists = await Promise.all(depsList.map(d => apiFetch(`${API_BASE}/courses/department/${d.id}`).then(r => r.json())));
         // backend may return { courses: [...] } or an array
         const rawCourses: any[] = courseLists.flatMap((c:any) => Array.isArray(c) ? c : (c.courses || c));
         if (!mounted) return;
@@ -117,7 +116,7 @@ export function Dashboard() {
       const ownerId = user?.id || 'seed-alice-001';
       fd.append('ownerId', String(ownerId));
 
-      const res = await fetch(`${API_BASE}/files`, { method: 'POST', body: fd });
+      const res = await apiFetch(`${API_BASE}/files`, { method: 'POST', body: fd });
       if (!res.ok) {
         const json = await res.json().catch(() => null);
         throw new Error(json?.error || 'Upload failed');
@@ -200,7 +199,7 @@ export function Dashboard() {
                 if (!newDeptName.trim() || !newDeptCode.trim()) return;
                 setCreatingDept(true);
                 try {
-                  const res = await fetch(`${API_BASE}/departments`, {
+                  const res = await apiFetch(`${API_BASE}/departments`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name: newDeptName.trim(), code: newDeptCode.trim() })
@@ -244,7 +243,7 @@ export function Dashboard() {
                 setCreatingCourse(true);
                 try {
                   const body = { courseCode: newCourseCode.trim(), title: newCourseName.trim(), departmentId: Number(newCourseDeptId) };
-                  const res = await fetch(`${API_BASE}/courses`, {
+                  const res = await apiFetch(`${API_BASE}/courses`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
