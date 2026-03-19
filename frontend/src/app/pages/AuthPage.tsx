@@ -42,7 +42,7 @@ export function AuthPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#002855] to-[#0066CC] flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-8">
-        <h1 className="text-3xl font-bold text-[#002855] mb-2">CourseShare</h1>
+        <h1 className="text-3xl font-bold text-[#002855] mb-2">Note4All</h1>
         <p className="text-gray-600 mb-8">
           {isSignUp ? 'Create a new account' : 'Sign in to your account'}
         </p>

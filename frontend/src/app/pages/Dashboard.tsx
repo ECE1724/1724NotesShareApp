@@ -155,18 +155,18 @@ export function Dashboard() {
       {/* Dark Navy Sidebar */}
       <aside className="w-64 bg-[#002855] text-white flex flex-col">
         <div className="p-6 border-b border-white/10">
-          <h1 className="text-white mb-2">CourseShare</h1>
+          <h1 className="text-white mb-2 cursor-pointer" onClick={() => navigate('/')}>Note4All</h1>
           <p className="text-sm text-blue-200">University of Toronto</p>
         </div>
         
         <nav className="flex-1 overflow-y-auto p-4">
-          <h3 className="text-xs uppercase tracking-wide text-blue-300 mb-3 px-2">Departments</h3>
+          <h3 className="text-lg uppercase tracking-wide text-white mb-3 px-2">Departments</h3>
           <div className="space-y-1">
             <button
               onClick={() => setSelectedDepartment(null)}
               className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
                 selectedDepartment === null
-                  ? 'bg-[#0066CC] text-white'
+                  ? 'bg-[#007894] text-white'
                   : 'text-blue-100 hover:bg-white/10'
               }`}
             >
@@ -178,14 +178,14 @@ export function Dashboard() {
                 onClick={() => setSelectedDepartment(dept.code)}
                 className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
                   selectedDepartment === dept.code
-                    ? 'bg-[#0066CC] text-white'
+                    ? 'bg-[#007894] text-white'
                     : 'text-blue-100 hover:bg-white/10'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span>{dept.name}</span>
                   <div className="flex items-center gap-1">
-                    <span className="text-xs text-blue-300">{dept.code}</span>
+                    <span className="text-xs text-white">{dept.code}</span>
                     {isAdmin && (
                       <span
                         className="text-xs text-red-300 hover:text-red-100 cursor-pointer ml-1"
@@ -210,7 +210,7 @@ export function Dashboard() {
         <div className="p-4 border-t border-white/10">
           {/* Create Department */}
           <div className="mb-4">
-            <h4 className="text-sm text-white/90 mb-2">Create department</h4>
+            <h4 className="text-sm text-white/90 mb-2">Add department</h4>
             <div className="flex gap-2">
               <Input placeholder="Dept name" value={newDeptName} onChange={e => setNewDeptName(e.target.value)} className="flex-1" />
               <Input placeholder="Code" value={newDeptCode} onChange={e => setNewDeptCode(e.target.value)} style={{width: 80}} />
@@ -236,16 +236,16 @@ export function Dashboard() {
                 } finally { setCreatingDept(false); }
               }}
               disabled={creatingDept}
-              className="w-full bg-[#0066CC] hover:bg-[#0052A3] text-white rounded-lg mt-2"
+              className="w-full bg-[#007894] hover:bg-[#006577] text-white rounded-lg mt-2"
               style={{ borderRadius: '8px' }}
             >
-              {creatingDept ? 'Creating...' : 'Create Department'}
+              {creatingDept ? 'Creating...' : 'Add'}
             </Button>
           </div>
 
           {/* Create Course */}
           <div className="mb-4">
-            <h4 className="text-sm text-white/90 mb-2">Create course</h4>
+            <h4 className="text-sm text-white/90 mb-2">Add course</h4>
             <div className="flex gap-2 mb-2">
               <Input placeholder="Code" value={newCourseCode} onChange={e => setNewCourseCode(e.target.value)} />
               <Input placeholder="Title" value={newCourseName} onChange={e => setNewCourseName(e.target.value)} />
@@ -288,9 +288,9 @@ export function Dashboard() {
                 } finally { setCreatingCourse(false); }
               }}
               disabled={creatingCourse}
-              className="w-full bg-white text-[#0066CC] border border-white/20"
+              className="w-full bg-[#007894] text-white border border-white/20"
             >
-              {creatingCourse ? 'Creating...' : 'Create'}
+              {creatingCourse ? 'Creating...' : 'Add'}
             </Button>
           </div>
          </div>
