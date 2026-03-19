@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "../database";
-import { requireAuth } from "../middleware";
+import { requireAuth, requireAdmin } from "../middleware";
 
 const router = Router();
 
@@ -78,5 +78,19 @@ router.post(
     }
 )
 
+
+router.delete(
+    "/:id",
+    requireAuth,
+    requireAdmin,
+    async (req, res, next) => {
+        try {
+            await db.deleteCourse(Number(req.params.id));
+            res.status(204).json({});
+        } catch (e) {
+            next(e);
+        }
+    }
+)
 
 export default router;

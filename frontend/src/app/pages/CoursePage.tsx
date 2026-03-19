@@ -33,6 +33,12 @@ export function CoursePage(){
   // fetch real auth session
   const { data: sessionData } = authClient.useSession();
   const user = sessionData?.user;
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!user) { setIsAdmin(false); return; }
+    apiFetch(`${API_BASE}/users/me`).then(r => r.json()).then(d => setIsAdmin(!!d.isAdmin)).catch(() => {});
+  }, [user]);
 
   useEffect(() => {
     if (!courseId) return;
@@ -231,6 +237,20 @@ export function CoursePage(){
                       Download
                     </Button>
                   </a>
+                  {(isAdmin || (user && f.ownerId === user.id)) && (
+                    <Button
+                      variant="outline"
+                      className="border-red-200 text-red-500 hover:bg-red-50"
+                      style={{ borderRadius: '8px' }}
+                      onClick={async () => {
+                        if (!confirm(`Delete "${f.title}"?`)) return;
+                        const res = await apiFetch(`${API_BASE}/files/${f.id}`, { method: 'DELETE' });
+                        if (res.ok || res.status === 204) setFiles(prev => prev.filter(x => x.id !== f.id));
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}

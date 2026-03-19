@@ -40,6 +40,12 @@ export function Dashboard() {
   // fetch real auth session
   const { data: sessionData, isPending: sessionLoading } = authClient.useSession();
   const user = sessionData?.user;
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!user) { setIsAdmin(false); return; }
+    apiFetch(`${API_BASE}/users/me`).then(r => r.json()).then(d => setIsAdmin(!!d.isAdmin)).catch(() => {});
+  }, [user]);
 
   useEffect(() => {
     let mounted = true;
@@ -178,7 +184,23 @@ export function Dashboard() {
               >
                 <div className="flex items-center justify-between">
                   <span>{dept.name}</span>
-                  <span className="text-xs text-blue-300">{dept.code}</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-blue-300">{dept.code}</span>
+                    {isAdmin && (
+                      <span
+                        className="text-xs text-red-300 hover:text-red-100 cursor-pointer ml-1"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (!confirm(`Delete department "${dept.name}"? All courses under it must be deleted first.`)) return;
+                          const res = await apiFetch(`${API_BASE}/departments/${dept.id}`, { method: 'DELETE' });
+                          if (res.ok) {
+                            setDepartments(prev => prev.filter(d => d.id !== dept.id));
+                            setCourses(prev => prev.filter(c => c.department !== dept.code));
+                          }
+                        }}
+                      >✕</span>
+                    )}
+                  </div>
                 </div>
               </button>
             ))}
@@ -375,9 +397,22 @@ export function Dashboard() {
                     >
                       {course.department}
                     </Badge>
-                    <span className="text-xs text-gray-500">
-                      {course.documentsCount} docs
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">
+                        {course.documentsCount} docs
+                      </span>
+                      {isAdmin && (
+                        <span
+                          className="text-xs text-red-400 hover:text-red-600 cursor-pointer"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (!confirm(`Delete course "${course.code}"? All files under it must be deleted first.`)) return;
+                            const res = await apiFetch(`${API_BASE}/courses/${course.id}`, { method: 'DELETE' });
+                            if (res.ok) setCourses(prev => prev.filter(c => c.id !== course.id));
+                          }}
+                        >✕</span>
+                      )}
+                    </div>
                   </div>
                 </button>
               ))}

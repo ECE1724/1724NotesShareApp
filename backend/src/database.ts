@@ -155,7 +155,6 @@ export const db = {
   },
 
   async createCourse(courseData: Course) {
-
     return prisma.course.create({
       data: {
         departmentId: courseData.departmentId,
@@ -163,6 +162,10 @@ export const db = {
         title: courseData.title
       }
     })
+  },
+
+  async deleteCourse(id: number) {
+    return prisma.course.delete({ where: { id } });
   },
 
 
@@ -200,13 +203,16 @@ export const db = {
   },
 
   async createDepartment(depatmentData: Department) {
-
     return prisma.department.create({
       data: {
         code: depatmentData.code,
         name: depatmentData.name
       }
     })
+  },
+
+  async deleteDepartment(id: number) {
+    return prisma.department.delete({ where: { id } });
   },
 
   // -------------------------
