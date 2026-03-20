@@ -10,6 +10,12 @@ import { API_BASE, apiFetch } from '../config';
 type Department = { id: number; name: string; code: string };
 type Course = { id: number; code: string; name: string; department: string; documentsCount: number; color: string };
 
+const COURSE_COVER_COUNT = 6;
+function courseCoverUrl(courseId: number): string {
+  const index = (courseId % COURSE_COVER_COUNT) + 1;
+  return `/course-covers/${index}.jpg`;
+}
+
 export function Dashboard() {
   const navigate = useNavigate();
   const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
@@ -212,8 +218,8 @@ export function Dashboard() {
           <div className="mb-4">
             <h4 className="text-sm text-white/90 mb-2">Add department</h4>
             <div className="flex gap-2">
-              <Input placeholder="Dept name" value={newDeptName} onChange={e => setNewDeptName(e.target.value)} className="flex-1" />
-              <Input placeholder="Code" value={newDeptCode} onChange={e => setNewDeptCode(e.target.value)} style={{width: 80}} />
+              <Input placeholder="Dept name" value={newDeptName} onChange={e => setNewDeptName(e.target.value)} className="flex-1 text-black" />
+              <Input placeholder="Code" value={newDeptCode} onChange={e => setNewDeptCode(e.target.value)} className="text-black" style={{width: 80}} />
             </div>
             <Button
               type="button"
@@ -247,8 +253,8 @@ export function Dashboard() {
           <div className="mb-4">
             <h4 className="text-sm text-white/90 mb-2">Add course</h4>
             <div className="flex gap-2 mb-2">
-              <Input placeholder="Code" value={newCourseCode} onChange={e => setNewCourseCode(e.target.value)} />
-              <Input placeholder="Title" value={newCourseName} onChange={e => setNewCourseName(e.target.value)} />
+              <Input placeholder="Code" value={newCourseCode} onChange={e => setNewCourseCode(e.target.value)} className="text-black" />
+              <Input placeholder="Title" value={newCourseName} onChange={e => setNewCourseName(e.target.value)} className="text-black" />
             </div>
             <div className="mb-2">
               <select value={newCourseDeptId ?? ''} onChange={e => setNewCourseDeptId(e.target.value ? Number(e.target.value) : null)} className="w-full text-sm rounded px-2 py-2">
@@ -288,7 +294,7 @@ export function Dashboard() {
                 } finally { setCreatingCourse(false); }
               }}
               disabled={creatingCourse}
-              className="w-full bg-[#007894] text-white border border-white/20"
+              className="w-full bg-[#007894] text-white"
             >
               {creatingCourse ? 'Creating...' : 'Add'}
             </Button>
@@ -353,7 +359,7 @@ export function Dashboard() {
                     <Button variant="ghost" onClick={() => navigate('/login')} className="text-[#0066CC] hover:bg-blue-50">
                       Login
                     </Button>
-                    <Button onClick={() => navigate('/register')} className="bg-[#002855] hover:bg-[#003a75] text-white">
+                    <Button onClick={() => navigate('/register')} className="bg-[#007894] hover:bg-[#003a75] text-white">
                       Register
                     </Button>
                   </>
@@ -376,14 +382,12 @@ export function Dashboard() {
                   className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-all hover:border-[#0066CC] text-left group"
                   style={{ borderRadius: '8px' }}
                 >
-                  <div 
-                    className="w-12 h-12 rounded-lg mb-4 flex items-center justify-center"
-                    style={{ 
-                      backgroundColor: course.color,
-                      borderRadius: '8px'
-                    }}
-                  >
-                    <FileText className="h-6 w-6 text-white" />
+                  <div className="w-full h-32 rounded-lg mb-4 overflow-hidden" style={{ borderRadius: '8px' }}>
+                    <img
+                      src={courseCoverUrl(course.id)}
+                      alt={course.code}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <h3 className="text-[#002855] mb-1 group-hover:text-[#0066CC] transition-colors">
                     {course.code}
