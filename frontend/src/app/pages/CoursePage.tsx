@@ -150,7 +150,7 @@ export function CoursePage(){
   return (
     <div className="flex h-screen bg-white">
       <aside className="w-64 bg-[#002855] text-white p-6">
-      <h1 className="text-white mb-2 cursor-pointer" onClick={() => navigate('/')}>Note4All</h1>
+      <img src="/Note4AllIcon.png" alt="Note4All" className="h-10 cursor-pointer mb-2" onClick={() => navigate('/')} />
       <p className="text-sm text-blue-200">University of Toronto</p>
       </aside>
 
