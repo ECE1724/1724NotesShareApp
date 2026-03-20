@@ -67,7 +67,7 @@ model FileAccess {
   userId      String
   accessLevel AccessLevel
 
-  file FileItem @relation(fields: [fileId], references: [id])
+  file FileItem @relation(fields: [fileId], references: [id], onDelete: Cascade)
   user User     @relation(fields: [userId], references: [id])
 
   @@id([fileId, userId])
@@ -83,9 +83,9 @@ model Annotation {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  file    FileItem     @relation(fields: [fileId], references: [id])
+  file    FileItem     @relation(fields: [fileId], references: [id], onDelete: Cascade)
   author  User         @relation(fields: [authorId], references: [id])
-  parent  Annotation?  @relation("AnnotationReplies", fields: [parentId], references: [id])
+  parent  Annotation?  @relation("AnnotationReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies Annotation[] @relation("AnnotationReplies")
 }
 
