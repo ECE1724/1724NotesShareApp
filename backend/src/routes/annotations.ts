@@ -4,8 +4,15 @@ import type { Annotation, CreateAnnotationInput, AccessLevel } from "../types";
 import { emitAnnotationCreated } from "../socket";
 import { requireAuth, requireFileAccess } from "../middleware";
 import { prisma } from "../lib/prisma";
+import sendTestEmail from "../../mailer"
 
 const router = Router();
+// Helper function
+function emailContentFormater(original_content: String, reply_content: String, replay_user: String|null) {
+  const mail = `${replay_user} replies "${reply_content}" to your annotation :\n"${original_content}"`
+  return mail;
+}
+
 
 // -----------------------
 // GET /api/annottions/file/:id
@@ -46,7 +53,16 @@ router.post(
         anchorJson: req.body.anchorJson,
         body: req.body.body
       }
-
+      if (annotation.parentId != null) {
+        const parent_annot = await db.getAnnotationById(Number(annotation.parentId));
+        const current_user = await db.getUserById(annotation.authorId);
+        if (parent_annot!=null){
+          const user_name = current_user ? current_user.name : "Someone"
+          const email_content = emailContentFormater(parent_annot.body, annotation.body, user_name);
+          const email_subject = `${user_name} reply to your annotation`;
+          sendTestEmail(parent_annot.author.email, email_subject, email_content);
+        }
+      }
       const create_res = await db.createAnnotation(annotation)
       emitAnnotationCreated(create_res);
       res.status(201).json(create_res)

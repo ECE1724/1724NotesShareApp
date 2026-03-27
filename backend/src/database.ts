@@ -33,6 +33,16 @@ export const db = {
   // Users
   // -------------------------
 
+  // Get user by id (string because better auth)
+  async getUserById(id: string) {
+    const user =  await prisma.user.findUnique({
+      where: {
+        id: id,
+      },
+    })
+    return user;
+  },
+
   // Get all users
   async getAllUsers() {
 
@@ -56,8 +66,6 @@ export const db = {
   // -------------------------
   // Files
   // -------------------------
-
-  // Create Users
 
   //Create a new file
   async create_file(file: CreateFileInput){
@@ -134,6 +142,13 @@ export const db = {
       prisma.course.findMany({
         where,
         orderBy: { id: "asc" },
+        include: {
+          _count: {
+            select: {
+              files: true,
+            },
+          },
+        },
       }),
       prisma.course.count({
         where,
@@ -218,7 +233,25 @@ export const db = {
   // -------------------------
   // Annotations
   // -------------------------
+  // get single annotation by id
+  async getAnnotationById(id: number) {
+    const annotation =  await prisma.annotation.findUnique({
+      where: {
+        id: id,
+      },
+      include: {
+        author: {
+          select: {
+            displayName: true,
+            email: true,
+          },
+        }
+      }
+    })
+    return annotation;
+  },
 
+  // Get all annotations of a file
   async getFileAnnotations(fileId: number) {
     const where: Prisma.AnnotationWhereInput = {
       fileId: fileId,
