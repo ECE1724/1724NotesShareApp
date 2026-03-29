@@ -77,7 +77,7 @@ export function Dashboard() {
           code: c.courseCode || c.code || String(c.id),
           name: c.title || c.name || c.courseName || '',
           department: c.department || deptById.get(Number(c.departmentId)) || c.department || '',
-          documentsCount: c.documentsCount || (c.filesCount || 0),
+          documentsCount: c._count?.files ?? c.documentsCount ?? c.filesCount ?? 0,
           color: c.color || '#0066CC',
         }));
         setCourses(normalized);
@@ -284,7 +284,7 @@ export function Dashboard() {
                     code: created.courseCode || created.code || newCourseCode.trim(),
                     name: created.title || created.name || newCourseName.trim(),
                     department: departments.find(d => d.id === Number(newCourseDeptId))?.code || '',
-                    documentsCount: created.documentsCount || 0,
+                    documentsCount: created._count?.files ?? created.documentsCount ?? 0,
                     color: created.color || '#0066CC'
                   };
                   setCourses(prev => [normalized, ...prev]);
