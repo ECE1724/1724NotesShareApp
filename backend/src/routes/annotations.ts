@@ -60,7 +60,15 @@ router.post(
           const user_name = current_user ? current_user.name : "Someone"
           const email_content = emailContentFormater(parent_annot.body, annotation.body, user_name);
           const email_subject = `${user_name} reply to your annotation`;
-          sendTestEmail(parent_annot.author.email, email_subject, email_content);
+          try {
+            await sendTestEmail(
+              parent_annot.author.email,
+              email_subject,
+              email_content
+            );
+          } catch (emailError) {
+            console.error("Failed to send reply email:", emailError);
+          }
         }
       }
       const create_res = await db.createAnnotation(annotation)
