@@ -85,3 +85,36 @@ Add line: import "dotenv/config";
 - AI thinks there is a missing import issue, which is incorrect.
 
 - We agree with the AI response that there may be some configuration problems. However, we disagree with AI’s modifications and we think the most likely issue is because of the .env file: the added configurations are not executed properly. We save the file again and restart the IDE, and then it works.
+
+## Session 3 (Authentication Integration using Better Auth)
+
+### Prompt
+
+```
+How to properly integrate 'better-auth' for an authentication system using a Node.js Express backend and a React frontend?
+```
+
+### AI Response
+
+```
+To securely set up better-auth in an Express and React environment:
+
+1. In your Node backend, instantiate better-auth and mount it securely using the node handler adapter:
+import { auth } from "better-auth";
+export const authInstance = auth({ ...plugins and options });
+app.all("/api/auth/*", toNodeHandler(authInstance));
+
+2. In your React frontend, create a central auth-client for managing session logic:
+import { createAuthClient } from "better-auth/react";
+export const authClient = createAuthClient({
+    baseURL: "http://localhost:3000"
+});
+// In your React Component:
+const { data: session, isPending } = authClient.useSession();
+```
+
+### What Your Team Did With It
+
+- We used this exact architectural guidance to refactor our authentication strategy, moving from a manual system to the robust `better-auth` integration.
+- The AI correctly highlighted the `toNodeHandler` approach which we mapped to our Express routing configuration.
+- We subsequently customized the frontend client configurations by adding our UI logic inside components like `Dashboard.tsx` to conditionally render user profiles and login states based on the session data provided by the hook.
