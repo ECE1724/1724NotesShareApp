@@ -2,12 +2,12 @@
 
 ## Team Members
 
-| Name          | Student Number |
-| ------------- | -------------- |
-| Shifang Zhao  | 1005079451     |
-| Yidi Wang     | 1008778716     |
-| Zhouhan Jin   | 1006146699     |
-| Ziqi Zhu      | 1006172204     |
+| Name          | Student Number | Email                          |
+| ------------- | -------------- | ------------------------------ |
+| Shifang Zhao  | 1005079451     |                shifang.zhao@mail.utoronto.ca                |
+| Yidi Wang     | 1008778716     | yidiwang.wang@mail.utoronto.ca |
+| Zhouhan Jin   | 1006146699     | zhouhan.jin@mail.utoronto.ca   |
+| Ziqi Zhu      | 1006172204     | ziqi.zhu@mail.utoronto.ca      |
 
 ## Motivation
 Currently, students at universities can access only the materials instructors share on the course website, along with their personal notes from lectures. While additional resources such as practice problems and solution guides are available online, locating relevant and reliable materials often requires significant time and effort. As a result, students may struggle to efficiently find high-quality supplementary materials for specific courses.
